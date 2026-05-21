@@ -35,7 +35,7 @@ DATABASE_URL=postgresql+psycopg://ankitsinghvedic@localhost:5432/perps
 4. Start the server:
 
 ```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 5. Open the API docs:
