@@ -1,6 +1,5 @@
 import os
 from dataclasses import dataclass
-
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,6 +13,7 @@ class Settings:
         "DATABASE_URL",
         "postgresql+psycopg://ankitsinghvedic@localhost:5432/perps",
     )
+    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 
 settings = Settings()
