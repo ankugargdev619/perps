@@ -1,4 +1,4 @@
-import { createApp } from "./app.ts";
+import { createApp } from "./app.js";
 
 const PORT = Number(process.env.PORT) || 4000;
 const HOST = process.env.HOST ?? "0.0.0.0";

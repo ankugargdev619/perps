@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import { router } from "./routes/index.js";
 
 const app = express();
 
@@ -12,9 +13,6 @@ export function createApp() {
 
   app.use(express.json());
 
-  app.get("/health", (req, res) => {
-    res.status(200).json({ status: "healthy" })
-  });
-
+  app.use("/api", router);
   return app;
 }
