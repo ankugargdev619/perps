@@ -15,7 +15,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "es2020",
-    "types": ["node"],
+    "types": ["node", "jest"],
     "lib": ["es2020"],
     // For nodejs:
     // "lib": ["esnext"],
