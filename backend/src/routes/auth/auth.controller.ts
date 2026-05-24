@@ -1,13 +1,28 @@
-import type { Request, Response } from "express";
+import { Request, Response } from "express";
 
+import { signupSchema } from "./auth.schema.ts";
+import { signupService } from "./auth.service.ts";
 
-export function loginController(req: Request, res: Response) {
+export const signupController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    // Validate body
+    const validatedData = signupSchema.parse(req.body);
 
-  // Check if the user exists
-  //
-  // Check if the pass is correct
-  //
-  // Issue a token
-  //
-  // return
-}
+    // Call service
+    const result = await signupService(validatedData);
+
+    return res.status(201).json({
+      success: true,
+      message: "User created successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
