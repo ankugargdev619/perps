@@ -124,17 +124,17 @@ Lock these in a short **ADR** before trading code:
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                              CLIENTS                                    │
-│  Next.js Terminal  │  Trading Bots (REST + WS + API Keys)              │
+│  Next.js Terminal  │  Trading Bots (REST + WS + API Keys)               │
 └───────────────────────────────┬─────────────────────────────────────────┘
                                 │
                     ┌───────────▼───────────┐
-                    │   API (Node/Express)   │
-                    │  REST + WS + Auth      │
-                    │  Rate limit, validate  │
+                    │   API (Node/Express)  │
+                    │  REST + WS + Auth     │
+                    │  Rate limit, validate │
                     └───────────┬───────────┘
                                 │
-        ┌───────────────────────┼───────────────────────┐
-        │                       │                       │
+        ┌───────────────────────┼──────────────────────┐
+        │                       │                      │
 ┌───────▼───────┐     ┌─────────▼─────────┐   ┌────────▼────────┐
 │ Order Engine  │     │  Risk Worker      │   │ Price Feed      │
 │ (Node)        │     │  Margin, liq, fund│   │ Worker          │
