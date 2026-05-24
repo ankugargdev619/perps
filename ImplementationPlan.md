@@ -2,12 +2,29 @@
 
 **Repository:** `/home/ankugarg/super30/perps`  
 **Document date:** May 24, 2026  
-**Estimated total timeline:** 28–36 weeks (solo/small team) · 16–22 weeks (4–6 engineers)
+
+**Estimated timelines**
+
+| Track | Solo / small team | Team (4–6 engineers) |
+|-------|-------------------|----------------------|
+| **Off-chain MVP (required)** — Phases 0–8 | **22–26 weeks** | **14–18 weeks** |
+| **+ On-chain (optional)** — Phase 9 | **+6–12 weeks** | **+6–10 weeks** |
+| **Full stack (MVP + on-chain)** | **28–38 weeks** | **20–28 weeks** |
+
+### Scope legend
+
+| Tag | Meaning |
+|-----|---------|
+| **REQUIRED** | Needed for a production-grade **off-chain** perps platform (custodial / DB ledger). |
+| **🔗 ON-CHAIN (OPTIONAL)** | Only if you add smart-contract settlement, on-chain collateral, or trustless deposits/withdrawals. **Skip entirely for MVP.** |
+
+> **Default path:** Off-chain CLOB + PostgreSQL ledger + Redis + oracle feeds (Pyth/Chainlink as **price sources**, not settlement). Ship Phases 0–8 first; add Phase 9 only when you want decentralized custody/settlement.
 
 ---
 
 ## Table of Contents
 
+0. [On-Chain Optional Scope — Quick Reference](#0-on-chain-optional-scope--quick-reference)
 1. [Executive Summary](#1-executive-summary)
 2. [Current State Analysis](#2-current-state-analysis)
 3. [Architecture Decision (Required First)](#3-architecture-decision-required-first)
@@ -25,6 +42,38 @@
 15. [Phased Implementation Roadmap](#15-phased-implementation-roadmap)
 16. [Timeline (Gantt-Style)](#16-timeline-gantt-style)
 17. [Success Criteria by Phase](#17-success-criteria-by-phase)
+18. [Appendices](#appendix-a--immediate-next-steps-this-week)
+
+---
+
+## 0. On-Chain Optional Scope — Quick Reference
+
+Everything below is **not required** for a working perps exchange with off-chain matching and a database ledger. Build these only if you choose on-chain settlement/custody (Phase 9).
+
+| Category | Item | Notes |
+|----------|------|-------|
+| **Services** | `settlement-worker` | Batch trade settlement to L2 |
+| **Services** | `indexer/` | Chain events → DB sync |
+| **Services** | `contracts/` (Foundry) | Vault, clearinghouse, oracle adapter |
+| **Architecture** | Hybrid / batched on-chain settlement | MVP uses **off-chain ledger only** |
+| **Architecture** | On-chain collateral vault | MVP uses **DB balance** + test faucet |
+| **ADR** | Chain selection (L2, appchain, Solana) | Only for Phase 9 |
+| **Workers** | `withdrawal-processor` (on-chain txs) | MVP: internal ledger withdrawal / manual ops |
+| **Workers** | `reconciliation` (DB vs vault) | MVP: N/A |
+| **API** | `POST .../deposit` with `txHash` | MVP: test faucet credits DB only |
+| **API** | `POST .../withdraw` → on-chain payout | MVP: queue + manual / fiat off-ramp |
+| **Prisma** | `OnChainDeposit`, `WithdrawalRequest.txHash`, `SettlementBatch` | Add in Phase 9 only |
+| **Infra** | `contracts/` in repo, testnet/mainnet deploy | Phase 9 |
+| **Infra** | Staging/prod **testnet contracts** | Phase 9 |
+| **Security** | Smart contract audit | Phase 9 |
+| **Security** | Withdrawal allowlist for **new wallet addresses** | Stricter for on-chain; lighter for MVP |
+| **Frontend** | Chain switcher, wrong-network prompts | Phase 9 (wallet login via SIWE is **REQUIRED**) |
+| **Frontend** | On-chain deposit/withdraw UI | Phase 9 |
+| **Milestone** | M6: Mainnet + audited contracts | Phase 9 only |
+| **Success** | Phase 9: testnet deposit → trade → withdraw on-chain | Phase 9 only |
+| **Timeline** | Phase 9 bar in Gantt | Optional add-on |
+
+**Still REQUIRED (not on-chain):** SIWE wallet login, Pyth/Chainlink as **oracle price feeds**, order engine, margin, funding, liquidation, WebSocket, frontend terminal — these work without smart contracts.
 
 ---
 
@@ -32,22 +81,22 @@
 
 The `perps` repo is an **early scaffold**: Express 5 API with health check, Prisma/PostgreSQL and Redis wired but unused, empty auth/user route stubs, placeholder `order_engine/`, and a default Next.js 16 frontend. **No trading, margin, oracle, liquidation, matching, wallet, or on-chain logic exists.**
 
-To reach production grade, you must build:
+To reach production grade (**off-chain MVP**), you must build:
 
-| Layer | Effort |
-|-------|--------|
-| Architecture & data model | 1–2 weeks |
-| Auth + accounts | 2–3 weeks |
-| Markets + oracle/index | 2–3 weeks |
-| Order engine (CLOB) | 6–10 weeks |
-| Risk (margin, funding, liquidation) | 4–6 weeks |
-| REST + WebSocket APIs | 3–4 weeks |
-| Frontend trading terminal | 6–8 weeks |
-| On-chain settlement (optional) | 6–12 weeks |
-| DevOps, observability, security | 3–4 weeks |
-| Testing, audit prep, hardening | 4–6 weeks |
+| Layer | Scope | Effort |
+|-------|-------|--------|
+| Architecture & data model | **REQUIRED** | 1–2 weeks |
+| Auth + accounts | **REQUIRED** | 2–3 weeks |
+| Markets + oracle/index | **REQUIRED** | 2–3 weeks |
+| Order engine (CLOB) | **REQUIRED** | 6–10 weeks |
+| Risk (margin, funding, liquidation) | **REQUIRED** | 4–6 weeks |
+| REST + WebSocket APIs | **REQUIRED** | 3–4 weeks |
+| Frontend trading terminal | **REQUIRED** | 6–8 weeks |
+| DevOps, observability, security | **REQUIRED** | 3–4 weeks |
+| Testing & hardening | **REQUIRED** | 4–6 weeks |
+| On-chain settlement, contracts, keepers | **🔗 ON-CHAIN (OPTIONAL)** | +6–12 weeks |
 
-This plan assumes a **CLOB-style perpetuals exchange** (Hyperliquid / dYdX v4 pattern): off-chain matching with deterministic settlement, on-chain or custodial collateral depending on your custody model.
+This plan assumes a **CLOB-style perpetuals exchange** (Hyperliquid-style **off-chain matching**): PostgreSQL ledger as source of truth for balances and positions. **On-chain settlement is a later add-on (Phase 9), not a prerequisite for launch.**
 
 ---
 
@@ -98,7 +147,7 @@ perps/
 | Liquidations | 0% |
 | Oracle / mark price | 0% |
 | WebSocket streams | 0% |
-| Smart contracts | 0% |
+| Smart contracts | 0% (🔗 optional — Phase 9) |
 | Docker / CI/CD | 0% |
 | Production observability | 0% |
 | Frontend product UI | 0% |
@@ -113,17 +162,18 @@ Root `README.md` still references **FastAPI on port 8000** — the backend was m
 
 Before writing trading code, lock these decisions in an **Architecture Decision Record (ADR)**:
 
-| Decision | Options | Recommendation |
-|----------|---------|----------------|
-| **Matching model** | CLOB vs AMM/vault vs hybrid | **CLOB** for price discovery + pro traders |
-| **Settlement** | Fully on-chain vs off-chain ledger vs hybrid | **Hybrid**: off-chain match, batched on-chain settlement |
-| **Collateral** | On-chain vault vs custodial DB ledger | Start **DB ledger** for MVP; add vault later |
-| **Auth** | SIWE (wallet) vs email/password vs API keys | **SIWE + API keys** for bots |
-| **Chain** | Ethereum L2, appchain, Solana | Pick one; affects contracts |
-| **Oracle** | Pyth, Chainlink, internal index | **Pyth** (low latency) + internal mark |
-| **Order engine language** | Node vs Rust vs Go | **Rust** for matching; Node for API gateway |
+| Decision | Options | MVP (required) | 🔗 On-chain (optional) |
+|----------|---------|----------------|------------------------|
+| **Matching model** | CLOB vs AMM vs hybrid | **CLOB** | Same |
+| **Settlement** | On-chain vs off-chain ledger vs hybrid | **Off-chain ledger** (PostgreSQL) | Hybrid: batched L2 settlement |
+| **Collateral** | On-chain vault vs DB ledger | **DB ledger** + test faucet | Vault contract + deposits |
+| **Auth** | SIWE vs email vs API keys | **SIWE + API keys** | Same (SIWE ≠ on-chain custody) |
+| **Chain** | L2, appchain, Solana | *Not needed* | Pick one in Phase 9 |
+| **Oracle** | Pyth, Chainlink, internal | **Pyth/Chainlink as price feed** + internal mark | On-chain `OracleAdapter` verification |
+| **Order engine** | Node vs Rust vs Go | **Rust** matching; Node API | Same |
 
-**MVP scope recommendation:** Off-chain CLOB + PostgreSQL ledger + Redis order book + Pyth oracle. Add smart contracts in Phase 5+.
+**MVP scope (required):** Off-chain CLOB + PostgreSQL ledger + Redis order book + Pyth (or Chainlink) as **off-chain price oracle**.  
+**Phase 9 only (optional):** Smart contracts, keepers, on-chain deposit/withdraw, reconciliation.
 
 ---
 
@@ -158,10 +208,13 @@ Before writing trading code, lock these decisions in an **Architecture Decision 
               └─────────────────┬─────────────────┘
                                 │
               ┌─────────────────▼─────────────────┐
-              │  Settlement / Keeper (optional)    │
+              │  🔗 ON-CHAIN (OPTIONAL) — Phase 9    │
+              │  Settlement worker / Keeper          │
               │  Smart contracts on L2             │
               └───────────────────────────────────┘
 ```
+
+**Solid box (above dashed):** required for MVP. **Dashed on-chain layer:** skip until Phase 9.
 
 **Event flow (place order):**
 
@@ -177,17 +230,17 @@ Before writing trading code, lock these decisions in an **Architecture Decision 
 
 ## 5. System Components & Services
 
-| Service | Location | Responsibility | Tech |
-|---------|----------|----------------|------|
-| **api-gateway** | `backend/` (extend) | REST, WS, auth, validation | Node, Express |
-| **order-engine** | `order_engine/` (new) | Matching, order book | Rust recommended |
-| **risk-engine** | `backend/src/workers/risk/` | Margin, liquidation, funding | Node |
-| **oracle-service** | `backend/src/workers/oracle/` | Index/mark price ingestion | Node |
-| **settlement-worker** | `backend/src/workers/settlement/` | On-chain batch settlement | Node + viem/ethers |
-| **indexer** (optional) | `indexer/` | Chain event → DB sync | Node or Rust |
-| **frontend** | `frontend/` | Trading terminal | Next.js 16 |
-| **contracts** | `contracts/` (new) | Vault, margin, oracle adapter | Foundry |
-| **shared-types** | `packages/types/` (new) | Shared TS types / OpenAPI | TypeScript |
+| Service | Scope | Location | Responsibility | Tech |
+|---------|-------|----------|----------------|------|
+| **api-gateway** | **REQUIRED** | `backend/` | REST, WS, auth, validation | Node, Express |
+| **order-engine** | **REQUIRED** | `order_engine/` | Matching, order book | Rust recommended |
+| **risk-engine** | **REQUIRED** | `backend/src/workers/risk/` | Margin, liquidation, funding | Node |
+| **oracle-service** | **REQUIRED** | `backend/src/workers/oracle/` | Index/mark from Pyth/Chainlink (off-chain) | Node |
+| **frontend** | **REQUIRED** | `frontend/` | Trading terminal | Next.js 16 |
+| **shared-types** | **REQUIRED** | `packages/types/` | Shared TS types / OpenAPI | TypeScript |
+| **settlement-worker** | **🔗 ON-CHAIN (OPTIONAL)** | `backend/src/workers/settlement/` | Batch settle trades on L2 | Node + viem |
+| **indexer** | **🔗 ON-CHAIN (OPTIONAL)** | `indexer/` | Chain events → DB sync | Node or Rust |
+| **contracts** | **🔗 ON-CHAIN (OPTIONAL)** | `contracts/` | Vault, clearinghouse, oracle adapter | Foundry |
 
 ---
 
@@ -335,6 +388,36 @@ model PriceSnapshot {
   createdAt  DateTime @default(now())
   @@index([marketId, createdAt])
 }
+
+// 🔗 ON-CHAIN (OPTIONAL) — add in Phase 9 only
+model OnChainDeposit {
+  id          String   @id @default(cuid())
+  accountId   String
+  txHash      String   @unique
+  chainId     Int
+  amount      Decimal  @db.Decimal(36, 18)
+  confirmations Int
+  status      String   // PENDING, CONFIRMED, FAILED
+  createdAt   DateTime @default(now())
+}
+
+model WithdrawalRequest {
+  id            String   @id @default(cuid())
+  accountId     String
+  amount        Decimal  @db.Decimal(36, 18)
+  toAddress     String
+  txHash        String?  // 🔗 set when on-chain payout sent
+  status        String   // PENDING, PROCESSING, COMPLETED, FAILED
+  createdAt     DateTime @default(now())
+}
+
+model SettlementBatch {
+  id          String   @id @default(cuid())
+  txHash      String?
+  tradeCount  Int
+  status      String
+  createdAt   DateTime @default(now())
+}
 ```
 
 ### 6.2 Redis Keys (Convention)
@@ -355,6 +438,8 @@ model PriceSnapshot {
 
 Base URL: `https://api.yourperps.com/api/v1`  
 All trading routes require authentication unless noted.
+
+**Scope column:** **REQUIRED** = MVP · **🔗** = on-chain variant or only needed with Phase 9
 
 ### Phase 0 — Foundation (Week 1–2)
 
@@ -380,15 +465,19 @@ All trading routes require authentication unless noted.
 
 ### Phase 2 — Accounts & Collateral (Week 5–7)
 
-| # | Method | Path | Description |
-|---|--------|------|-------------|
-| 2.1 | `GET` | `/accounts` | List user accounts |
-| 2.2 | `GET` | `/accounts/:id` | Account detail + equity |
-| 2.3 | `GET` | `/accounts/:id/balances` | Collateral balances |
-| 2.4 | `POST` | `/accounts/:id/deposit` | Deposit (on-chain tx hash or test faucet) |
-| 2.5 | `POST` | `/accounts/:id/withdraw` | Request withdrawal |
-| 2.6 | `GET` | `/accounts/:id/ledger` | Transaction history (paginated) |
-| 2.7 | `GET` | `/accounts/:id/equity` | Total equity, margin used, free collateral |
+| # | Scope | Method | Path | Description |
+|---|-------|--------|------|-------------|
+| 2.1 | **REQUIRED** | `GET` | `/accounts` | List user accounts |
+| 2.2 | **REQUIRED** | `GET` | `/accounts/:id` | Account detail + equity |
+| 2.3 | **REQUIRED** | `GET` | `/accounts/:id/balances` | Collateral balances |
+| 2.4 | **REQUIRED** | `POST` | `/accounts/:id/deposit` | Credit balance — **MVP:** test faucet / admin credit |
+| 2.4b | **🔗** | `POST` | `/accounts/:id/deposit` | Same path — body includes `txHash`; verify on-chain deposit |
+| 2.5 | **REQUIRED** | `POST` | `/accounts/:id/withdraw` | Request withdrawal — **MVP:** ledger debit + ops queue |
+| 2.5b | **🔗** | `POST` | `/accounts/:id/withdraw` | Same path — triggers on-chain USDC transfer |
+| 2.6 | **REQUIRED** | `GET` | `/accounts/:id/ledger` | Transaction history (paginated) |
+| 2.7 | **REQUIRED** | `GET` | `/accounts/:id/equity` | Total equity, margin used, free collateral |
+| 2.8 | **🔗** | `GET` | `/accounts/:id/deposits/:txHash` | On-chain deposit status |
+| 2.9 | **🔗** | `GET` | `/accounts/:id/withdrawals/:id` | Withdrawal + chain tx status |
 
 ### Phase 3 — Markets & Market Data (Week 6–8)
 
@@ -546,17 +635,19 @@ Endpoint: `wss://api.yourperps.com/ws/v1`
 
 ## 10. Background Workers & Cron Jobs
 
-| Worker | Schedule | Responsibility |
-|--------|----------|----------------|
-| **oracle-ingestor** | Every 1–5s | Pull Pyth/Chainlink; compute mark price |
-| **funding-calculator** | Every funding interval (e.g. 1h) | `funding = (mark - index) / index * factor`; debit/credit accounts |
-| **liquidation-scanner** | Every 1–5s | Find positions below maintenance margin |
-| **liquidation-executor** | Event-driven | Close positions at mark ± slippage |
-| **insurance-fund** | On liquidation | Absorb bad debt if liquidation insufficient |
-| **candle-aggregator** | Every 1m/5m/1h | Build OHLCV from trades |
-| **withdrawal-processor** | Every 30s | Process pending withdrawals (on-chain) |
-| **reconciliation** | Daily | DB balances vs on-chain vault |
-| **expired-order-cleanup** | Every 1m | Cancel GTD expired orders |
+| Worker | Scope | Schedule | Responsibility |
+|--------|-------|----------|----------------|
+| **oracle-ingestor** | **REQUIRED** | Every 1–5s | Pull Pyth/Chainlink **prices** (off-chain API); compute mark |
+| **funding-calculator** | **REQUIRED** | Every funding interval (e.g. 1h) | Funding payments; debit/credit DB ledger |
+| **liquidation-scanner** | **REQUIRED** | Every 1–5s | Find positions below maintenance margin |
+| **liquidation-executor** | **REQUIRED** | Event-driven | Close positions at mark ± slippage |
+| **insurance-fund** | **REQUIRED** | On liquidation | Absorb bad debt (DB ledger) if liq insufficient |
+| **candle-aggregator** | **REQUIRED** | Every 1m/5m/1h | Build OHLCV from trades |
+| **expired-order-cleanup** | **REQUIRED** | Every 1m | Cancel GTD expired orders |
+| **withdrawal-processor** | **🔗 ON-CHAIN (OPTIONAL)** | Every 30s | Sign & broadcast on-chain withdrawal txs |
+| **deposit-confirmer** | **🔗 ON-CHAIN (OPTIONAL)** | Every 15s | Watch vault events; credit DB after N confirmations |
+| **settlement-batcher** | **🔗 ON-CHAIN (OPTIONAL)** | Every N sec / M trades | Submit trade batches to clearinghouse |
+| **reconciliation** | **🔗 ON-CHAIN (OPTIONAL)** | Daily | DB balances vs on-chain vault total |
 
 ### Mark Price Formula (Typical)
 
@@ -573,44 +664,49 @@ premiumIndex = (max(0, impactBid - index) - max(0, index - impactAsk)) / index
 
 ---
 
-## 11. Smart Contracts (If On-Chain Settlement)
+## 11. Smart Contracts — 🔗 ON-CHAIN (OPTIONAL) — Phase 9 Only
 
-**New directory:** `contracts/` (Foundry)
+> **Entire section is optional.** A production off-chain perps platform does **not** need any of this. Add only when you want trustless custody or on-chain settlement.
+
+**New directory:** `contracts/` (Foundry) — create in Phase 9, not before.
 
 | Contract | Purpose |
 |----------|---------|
 | `CollateralVault.sol` | USDC deposits/withdrawals |
 | `MarginAccount.sol` | Per-user margin state root (Merkle optional) |
 | `PerpClearinghouse.sol` | Batch settle trades from operator signature |
-| `OracleAdapter.sol` | Pyth/Chainlink price verification |
-| `InsuranceFund.sol` | Protocol backstop |
+| `OracleAdapter.sol` | On-chain verification of Pyth/Chainlink updates |
+| `InsuranceFund.sol` | On-chain protocol backstop |
 | `Governor.sol` | Pause, parameter updates (timelock) |
 
-**Keepers:** `settlement-worker` submits batches every N seconds or M trades.
+**Keepers (optional):** `settlement-worker`, `deposit-confirmer`, `withdrawal-processor` — see Section 10.
 
-**Timeline:** Add after off-chain MVP is stable (Phase 5+).
+**When to start:** After Phase 8 (staging prod) is stable. **Do not block MVP on contracts or audits.**
 
 ---
 
 ## 12. Frontend Blueprint
 
-**Stack additions:** wagmi/viem, WalletConnect, TanStack Query, lightweight-charts or TradingView widget, Zustand.
+**Stack additions (required):** SIWE via `viem`, TanStack Query, lightweight-charts or TradingView, Zustand.  
+**Stack additions (🔗 on-chain only):** `wagmi`, WalletConnect, chain switcher, deposit/withdraw contract flows.
 
 ### 12.1 Pages / Routes
 
-| Route | Purpose |
-|-------|---------|
-| `/` | Landing / connect wallet |
-| `/trade/[symbol]` | Main trading terminal |
-| `/portfolio` | Positions, balances, PnL |
-| `/orders` | Open orders + history |
-| `/markets` | Market list |
-| `/account/settings` | API keys, preferences |
-| `/docs` | API docs link (optional) |
+| Route | Scope | Purpose |
+|-------|-------|---------|
+| `/` | **REQUIRED** | Landing / SIWE connect wallet |
+| `/trade/[symbol]` | **REQUIRED** | Main trading terminal |
+| `/portfolio` | **REQUIRED** | Positions, balances, PnL |
+| `/orders` | **REQUIRED** | Open orders + history |
+| `/markets` | **REQUIRED** | Market list |
+| `/account/settings` | **REQUIRED** | API keys, preferences |
+| `/account/deposit` | **🔗** | On-chain deposit UI (approve + deposit) |
+| `/account/withdraw` | **🔗** | On-chain withdraw UI |
+| `/docs` | optional | API docs link |
 
 ### 12.2 Trading Terminal Components
 
-1. **Header** — wallet, equity, network  
+1. **Header** — wallet, equity — **🔗** add network/chain indicator in Phase 9  
 2. **Chart** — candlesticks + position overlays  
 3. **Order book** — L2 with depth visualization  
 4. **Order form** — market/limit, leverage slider, reduce-only  
@@ -640,7 +736,8 @@ perps/
 ├── .github/workflows/
 │   ├── ci.yml                  # lint, test, build
 │   └── deploy.yml              # staging/prod
-├── contracts/                  # Foundry
+├── contracts/                  # 🔗 ON-CHAIN (OPTIONAL) — Foundry, Phase 9
+├── indexer/                    # 🔗 ON-CHAIN (OPTIONAL)
 ├── packages/types/             # Shared types
 └── docs/
     ├── openapi.yaml
@@ -659,11 +756,13 @@ perps/
 
 ### 13.3 Environments
 
-| Env | Purpose |
-|-----|---------|
-| `local` | Docker compose, test faucet |
-| `staging` | Full stack, testnet contracts |
-| `prod` | Mainnet, WAF, multi-AZ |
+| Env | Scope | Purpose |
+|-----|-------|---------|
+| `local` | **REQUIRED** | Docker compose, test faucet (DB credits) |
+| `staging` | **REQUIRED** | Full off-chain stack |
+| `staging` | **🔗** | + testnet contracts & keepers |
+| `prod` | **REQUIRED** | Off-chain prod, WAF, multi-AZ |
+| `prod` | **🔗** | + mainnet contracts & audited vault |
 
 ### 13.4 CI/CD Pipeline
 
@@ -676,20 +775,28 @@ perps/
 
 ## 14. Security & Compliance Checklist
 
+### Required (off-chain MVP)
+
 - [ ] SIWE replay protection (nonce, expiry)  
 - [ ] API key HMAC signing (timestamp + body)  
 - [ ] Rate limiting per IP and per user  
 - [ ] Input validation (Zod on all routes — use `validate.middleware.ts`)  
 - [ ] SQL injection prevention (Prisma parameterized queries)  
 - [ ] Secrets in vault (not `.env` in prod)  
-- [ ] Withdrawal allowlist + delay for new addresses  
 - [ ] Admin routes behind separate auth + IP allowlist  
 - [ ] Oracle staleness circuit breaker (halt market if mark > 30s old)  
 - [ ] Max position / OI limits per market  
 - [ ] DDoS protection (Cloudflare/AWS Shield)  
-- [ ] Smart contract audit before mainnet  
-- [ ] Bug bounty program  
 - [ ] Geo-blocking (if required by jurisdiction)  
+
+### 🔗 On-chain (optional) — Phase 9 only
+
+- [ ] Withdrawal allowlist + delay for new **wallet** addresses  
+- [ ] Multisig / timelock on contract admin  
+- [ ] Smart contract audit before mainnet  
+- [ ] Keeper key management (HSM, separate from API keys)  
+- [ ] Reconciliation alerts (DB vs vault drift)  
+- [ ] Bug bounty program (especially after contracts live)  
 
 ---
 
@@ -753,11 +860,12 @@ perps/
 
 ### Phase 7 — Frontend (Week 15–22)
 
-- [ ] Wallet connect (wagmi)  
+- [ ] SIWE wallet login (viem — **required**)  
 - [ ] Trading terminal page  
 - [ ] Order book + chart + order form  
 - [ ] Portfolio + orders pages  
 - [ ] WebSocket hooks  
+- [ ] 🔗 On-chain UI (deposit/withdraw, chain switch) — defer to Phase 9  
 
 ### Phase 8 — Production Hardening (Week 20–26)
 
@@ -767,12 +875,17 @@ perps/
 - [ ] Chaos testing (Redis/DB failover)  
 - [ ] Staging environment + runbooks  
 
-### Phase 9 — On-Chain (Week 24–36, Optional)
+### Phase 9 — 🔗 ON-CHAIN (OPTIONAL) (Week +6–12 after Phase 8)
 
-- [ ] Foundry contracts (vault, clearinghouse)  
-- [ ] Testnet deployment + keeper  
-- [ ] Deposit/withdraw via contract events  
-- [ ] Audit + mainnet launch  
+> Skip this phase entirely to ship a production **off-chain** perps platform at **M5** (see timeline).
+
+- [ ] Foundry `contracts/` (vault, clearinghouse, oracle adapter)  
+- [ ] `indexer/` — vault Deposit/Withdraw events → DB  
+- [ ] `settlement-worker` + `deposit-confirmer` + on-chain `withdrawal-processor`  
+- [ ] API: deposit with `txHash`, withdrawal chain status (2.4b, 2.5b, 2.8, 2.9)  
+- [ ] Frontend: chain switch, deposit/withdraw pages  
+- [ ] Testnet deployment + reconciliation worker  
+- [ ] Audit + mainnet contract launch (**M6**)  
 
 ---
 
@@ -801,45 +914,45 @@ Phase7                                        ███████████�
                                                                ├──────────────┤
 Phase8                                                         ████████████████ Prod hardening
                                                                                ├────────────────────────┤
-Phase9 (opt)                                                                   ████████████████████████████ On-chain
+Phase9 🔗 OPTIONAL (not on critical path)                                          ████████████ On-chain
 ```
 
 ### Milestone Dates (Starting May 24, 2026)
 
-| Milestone | Target Date | Deliverable |
-|-----------|-------------|-------------|
-| M0: Dev environment | Jun 7, 2026 | Docker, CI, middleware, health/ready |
-| M1: Auth + DB | Jun 28, 2026 | Users, SIWE, Prisma schema live |
-| M2: Paper trading API | Aug 9, 2026 | Markets, orders, engine (no real money) |
-| M3: Risk engine | Sep 20, 2026 | Margin, funding, liquidations |
-| M4: Beta terminal | Oct 25, 2026 | Frontend + WebSocket, testnet |
-| M5: Staging prod | Dec 6, 2026 | Load tested, monitored, staging |
-| M6: Mainnet launch | Jan 17, 2027 | Audited contracts (if on-chain) + prod |
+| Milestone | Scope | Target Date | Deliverable |
+|-----------|-------|-------------|-------------|
+| M0: Dev environment | **REQUIRED** | Jun 7, 2026 | Docker, CI, middleware, health/ready |
+| M1: Auth + DB | **REQUIRED** | Jun 28, 2026 | Users, SIWE, Prisma schema live |
+| M2: Paper trading API | **REQUIRED** | Aug 9, 2026 | Markets, orders, engine |
+| M3: Risk engine | **REQUIRED** | Sep 20, 2026 | Margin, funding, liquidations |
+| M4: Beta terminal | **REQUIRED** | Oct 25, 2026 | Frontend + WebSocket |
+| **M5: Production launch (off-chain)** | **REQUIRED** | **Dec 6, 2026** | **Load-tested staging/prod — no contracts required** |
+| M6: On-chain mainnet | **🔗 OPTIONAL** | Jan 17, 2027+ | Audited contracts + vault deposits |
 
-**Solo developer:** Add ~40–50% to all timelines (≈40–50 weeks total).
+**Solo developer (Phases 0–8 only):** ~30–36 weeks. **Add Phase 9:** +6–12 weeks.
 
 ---
 
 ## 17. Success Criteria by Phase
 
-| Phase | Done when |
-|-------|-----------|
-| 0 | `docker compose up` runs API + DB + Redis; CI green |
-| 1 | Wallet login works; JWT protects `/users/me` |
-| 2 | User can deposit test USDC; ledger shows entries |
-| 3 | BTC-PERP ticker shows live mark from Pyth |
-| 4 | Limit buy + sell match; fills appear in DB |
-| 5 | Underwater position gets liquidated automatically |
-| 6 | Browser receives book deltas < 100ms after trade |
-| 7 | User trades BTC-PERP from UI end-to-end |
-| 8 | k6 load test passes; staging stable 7 days |
-| 9 | Testnet deposit → trade → withdraw works on-chain |
+| Phase | Scope | Done when |
+|-------|-------|-----------|
+| 0 | **REQUIRED** | `docker compose up` runs API + DB + Redis; CI green |
+| 1 | **REQUIRED** | Wallet login works; JWT protects `/users/me` |
+| 2 | **REQUIRED** | User can deposit via **test faucet**; ledger shows entries |
+| 3 | **REQUIRED** | BTC-PERP ticker shows live mark from Pyth (off-chain feed) |
+| 4 | **REQUIRED** | Limit buy + sell match; fills appear in DB |
+| 5 | **REQUIRED** | Underwater position gets liquidated automatically |
+| 6 | **REQUIRED** | Browser receives book deltas < 100ms after trade |
+| 7 | **REQUIRED** | User trades BTC-PERP from UI end-to-end |
+| 8 | **REQUIRED** | k6 load test passes; staging stable 7 days → **ship at M5** |
+| 9 | **🔗 OPTIONAL** | Testnet: on-chain deposit → trade → on-chain withdraw |
 
 ---
 
 ## Appendix A — Immediate Next Steps (This Week)
 
-1. **Write ADR** — Choose CLOB + off-chain ledger for MVP.  
+1. **Write ADR** — CLOB + **off-chain ledger** (skip on-chain for MVP unless required).  
 2. **Implement middleware** — `error.middleware.ts`, `logger.ts`, `requestId.middleware.ts`.  
 3. **Expand Prisma schema** — Copy models from Section 6; run `prisma migrate dev`.  
 4. **Wire auth routes** — SIWE with `viem` + JWT in `tokens.ts`.  
@@ -851,18 +964,30 @@ Phase9 (opt)                                                                   �
 
 ## Appendix B — Key Dependencies to Add
 
-### Backend (`backend/package.json`)
+### Backend (`backend/package.json`) — REQUIRED
 
 ```
-siwe, viem, jsonwebtoken, bcrypt (if email auth), pino, express-rate-limit,
+siwe, viem, jsonwebtoken, pino, express-rate-limit,
 ws, bullmq (job queue), decimal.js, helmet, cookie-parser
 ```
 
-### Frontend (`frontend/package.json`)
+### Backend — 🔗 ON-CHAIN (OPTIONAL), Phase 9
 
 ```
-wagmi, viem, @tanstack/react-query, zustand, lightweight-charts,
+# viem already listed — add: abis from contracts/, @pythnetwork/client (if on-chain oracle verify)
+```
+
+### Frontend (`frontend/package.json`) — REQUIRED
+
+```
+viem, @tanstack/react-query, zustand, lightweight-charts,
 @radix-ui/react-* (or shadcn/ui), zod, date-fns
+```
+
+### Frontend — 🔗 ON-CHAIN (OPTIONAL), Phase 9
+
+```
+wagmi, @wagmi/connectors, WalletConnect
 ```
 
 ### Order Engine (`order_engine/Cargo.toml`)
@@ -884,5 +1009,25 @@ tokio, redis, sqlx, serde, rust_decimal, tracing, tonic (gRPC optional)
 
 ---
 
-*This document should be reviewed and updated after Phase 0 ADR is finalized. Store canonical copy in repo at `docs/IMPLEMENTATION_PLAN.md` when ready.*
+---
+
+## Appendix D — Phase 9 Checklist (🔗 On-Chain Only)
+
+Use this when you opt into on-chain; ignore until M5 (off-chain prod) is done.
+
+- [ ] ADR: chain, custody model, upgradeability  
+- [ ] `contracts/` — vault, clearinghouse, oracle adapter, governor  
+- [ ] Testnet deploy + verified contracts  
+- [ ] `indexer` listening to `Deposit` / `Withdraw` events  
+- [ ] `deposit-confirmer` + `withdrawal-processor` + `settlement-batcher`  
+- [ ] `reconciliation` worker + alerts  
+- [ ] API endpoints 2.4b, 2.5b, 2.8, 2.9  
+- [ ] Prisma: `OnChainDeposit`, `WithdrawalRequest.txHash`, `SettlementBatch`  
+- [ ] Frontend deposit/withdraw + chain switch  
+- [ ] External audit + bug bounty  
+- [ ] Mainnet deploy (**M6**)
+
+---
+
+*Canonical plan: `ImplementationPlan.md` in repo root. Review after Phase 0 ADR; default to **off-chain MVP** unless product requires trustless custody.*
 
