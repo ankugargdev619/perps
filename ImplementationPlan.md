@@ -181,7 +181,7 @@ Before writing trading code, lock these decisions in an **Architecture Decision 
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CLIENTS                                         │
+│                              CLIENTS                                        │
 │  Next.js Terminal  │  Mobile  │  Trading Bots (REST + WS + API Keys)        │
 └───────────────────────────────┬─────────────────────────────────────────────┘
                                 │
@@ -194,23 +194,23 @@ Before writing trading code, lock these decisions in an **Architecture Decision 
         ┌───────────────────────┼───────────────────────┐
         │                       │                       │
 ┌───────▼───────┐     ┌─────────▼─────────┐   ┌────────▼────────┐
-│ Order Engine  │     │  Risk Engine       │   │ Oracle Service  │
-│ (Rust)        │     │  (Node worker)     │   │ (Node worker)   │
-│ Match, book   │     │  Margin, liq, fund │   │ Index, mark     │
+│ Order Engine  │     │  Risk Engine      │   │ Oracle Service  │
+│ (Rust)        │     │  (Node worker)    │   │ (Node worker)   │
+│ Match, book   │     │  Margin, liq, fund│   │ Index, mark     │
 └───────┬───────┘     └─────────┬─────────┘   └────────┬────────┘
-        │                       │                       │
-        └───────────────────────┼───────────────────────┘
+        │                       │                      │
+        └───────────────────────┼──────────────────────┘
                                 │
               ┌─────────────────▼─────────────────┐
-              │  PostgreSQL (source of truth)      │
-              │  Redis (books, cache, pub/sub)     │
-              │  Kafka/NATS (events, optional)     │
+              │  PostgreSQL (source of truth)     │
+              │  Redis (books, cache, pub/sub)    │
+              │  Kafka/NATS (events, optional)    │
               └─────────────────┬─────────────────┘
                                 │
               ┌─────────────────▼─────────────────┐
-              │  🔗 ON-CHAIN (OPTIONAL) — Phase 9    │
-              │  Settlement worker / Keeper          │
-              │  Smart contracts on L2             │
+              │  🔗 ON-CHAIN (OPTIONAL) — Phase 9 │
+              │  Settlement worker / Keeper       │
+              │  Smart contracts on L2            |
               └───────────────────────────────────┘
 ```
 
