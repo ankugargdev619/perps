@@ -1,3 +1,4 @@
+
 {
   // Visit https://aka.ms/tsconfig to read more about this file
   "include": ["src/**/*.ts"],
@@ -15,7 +16,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "es2020",
-    "types": ["node", "jest"],
+    "types": ["node"],
     "lib": ["es2020"],
     // For nodejs:
     // "lib": ["esnext"],
