@@ -1,52 +1,60 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
+import { env } from "../../config/env.ts";
 import { prisma } from "../../db/prisma.ts";
 import { SignupInput } from "./auth.schema.ts";
 
-export const signupService = async (data: SignupInput) => {
-  const { name, email, password } = data;
+const JWT_SECRET = env.JWT_SECRET
 
-  // Check existing user
-  const existingUser = await prisma.user.findUnique({
-    where: {
-      email,
-    },
-  });
+export class AuthService {
 
-  if (existingUser) {
-    throw new Error("User already exists");
-  }
+  async signup(data: SignupInput) {
 
-  // Hash password
-  const hashedPassword = await bcrypt.hash(password, 10);
+    const { name, email, password } = data;
 
-  // Create user
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hashedPassword,
-    },
-  });
+    // Check existing user
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
 
-  // Generate JWT
-  const token = jwt.sign(
-    {
-      userId: user.id,
-    },
-    process.env.JWT_SECRET as string,
-    {
-      expiresIn: "7d",
+    if (existingUser) {
+      throw new Error("User already exists");
     }
-  );
 
-  return {
-    token,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-    },
-  };
-};
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+      },
+    });
+
+    // Generate JWT
+    const token = jwt.sign(
+      {
+        userId: user.id,
+      },
+      JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+    };
+  }
+}
+
+export const authService = new AuthService();

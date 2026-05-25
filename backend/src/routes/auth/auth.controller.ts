@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 
 import { signupSchema } from "./auth.schema.ts";
-import { signupService } from "./auth.service.ts";
+import { authService } from "./auth.service.ts";
 
 export const signupController = async (
   req: Request,
@@ -12,7 +12,7 @@ export const signupController = async (
     const validatedData = signupSchema.parse(req.body);
 
     // Call service
-    const result = await signupService(validatedData);
+    const result = await authService.signup(validatedData);
 
     return res.status(201).json({
       success: true,

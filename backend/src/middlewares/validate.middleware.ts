@@ -1,7 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { ZodTypeAny } from "zod/v3";
+import { ZodType } from "zod";
 
-type Schemas = { body?: ZodTypeAny; query?: ZodTypeAny; params?: ZodTypeAny };
+type Schemas = { body?: ZodType; query?: ZodType; params?: ZodType };
 
 /**
  * Accept the expected schema and validate below : 
