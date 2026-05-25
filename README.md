@@ -3,22 +3,13 @@
 ## Backend (FastAPI)
 
 ```bash
-cd backend
-
-# Create + activate virtualenv
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start API server
-uvicorn main:app --reload --host 127.0.0.1 --port 8000
+cd backend # navigate to backend folder
+npm install # install all thee packages
+npx prisma migrate deploy # deploy all the migrations
+npx prisma generate # generate the client
+npm run build # build the project 
+npm run start # start the server
 ```
-
-API docs:
-
-- http://127.0.0.1:8000/docs
 
 ## Frontend (Next.js)
 
