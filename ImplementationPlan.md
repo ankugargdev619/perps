@@ -183,6 +183,7 @@ Implement in `backend/prisma/schema.prisma`.
 ```prisma
 model User {
   id           String   @id @default(cuid())
+  name         String
   email        String   @unique
   passwordHash String
   createdAt    DateTime @default(now())
@@ -343,7 +344,7 @@ Trading routes require JWT or API key.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/auth/register` | Email + password signup |
+| `POST` | `/auth/signup` | Email + password signup |   - Done
 | `POST` | `/auth/login` | Login → access + refresh tokens |
 | `POST` | `/auth/refresh` | Refresh access token |
 | `POST` | `/auth/logout` | Invalidate session |
