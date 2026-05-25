@@ -22,3 +22,38 @@ model User {
   password  String
   createdAt DateTime @default(now())
 }
+
+model Order {
+  id             String    @id @default(uuid()) 
+  user_id        String
+  market_id      String
+  orderType      orderType
+  side           side
+  price          String
+  slippage       Int 
+  qty            String
+  initialMargin  String
+  status         orderStatus
+  filledQty      String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt()
+}
+
+
+
+enum orderStatus {
+  Filled
+  PartiallyFilled
+  Cancelled
+  Open
+}
+
+enum side {
+  Bid
+  Ask
+}
+
+enum orderType {
+  Market
+  Limit
+}
