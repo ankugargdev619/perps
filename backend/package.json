@@ -12,8 +12,8 @@
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:deploy": "npx prisma migrate deploy",
     "prisma studio": "npx prisma studio",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watchAll"
+    "test": "NODE_ENV=testing node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "NODEE_ENV=testing node --experimental-vm-modules node_modules/jest/bin/jest.js --watchAll"
   },
   "keywords": [],
   "author": "",
