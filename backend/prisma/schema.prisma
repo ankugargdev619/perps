@@ -20,6 +20,7 @@ model User {
   name      String
   email     String   @unique
   password  String
+  accounts  Account[]
   createdAt DateTime @default(now())
 }
 
@@ -39,7 +40,46 @@ model Order {
   updatedAt      DateTime    @updatedAt()
 }
 
+model Account {
+  id                  String    @id @default(cuid())
+  userId              String
+  collateralAsset     String    @default("USDC")
+  balance             Decimal   @default(0) @db.Decimal(36,18)
+  lockedMargin        Decimal   @default(0) @db.Decimal(36,18)
+  createdaAt          DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  user                User      @relation(fields: [userId], references: [id], onDelete : Cascade)
+  ledgerEntries       LedgerEntry[]
+  withdrawalRequests  WithdrawRequest[]
 
+  @@unique([userId, collateralAsset])
+  @@index([userId])
+}
+
+model LedgerEntry {
+  id                  String     @id @default(cuid())
+  accountId           String
+  type                LedgerType
+  amount              Decimal    @db.Decimal(36,18)
+  balanceAfter        Decimal    @db.Decimal(36,18)
+  refId               String?
+  createdAt           DateTime  @default(now())
+  account             Account   @relation(fields : [accountId], references : [id], onDelete : Cascade)
+
+  @@index([accountId, createdAt])
+}
+
+model WithdrawRequest {
+  id                  String            @id @default(cuid())
+  accountId           String
+  amount              Decimal           @db.Decimal(36,18)
+  status              WithdrawalStatus  @default(PENDING)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  account             Account           @relation(fields: [accountId], references : [id], onDelete : Cascade)
+
+  @@index([accountId, status])
+}
 
 enum orderStatus {
   Filled
@@ -56,4 +96,20 @@ enum side {
 enum orderType {
   Market
   Limit
+}
+
+enum LedgerType {
+  DEPOSIT
+  WITHDRAW
+  FEE
+  FUNDING
+  REALIZED_PNL
+  MARGIN_LOCK
+  MARGIN_RELEASE
+}
+
+enum WithdrawalStatus {
+  PENDING
+  COMPLETED
+  REJECTED
 }
