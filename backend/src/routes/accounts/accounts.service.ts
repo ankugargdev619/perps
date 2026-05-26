@@ -11,12 +11,16 @@ export class AccountsService {
     return accounts;
   }
 
-  async validateAccountOwnership(userId: string, accountId: string) {
+  async getAccountData(userId: string, accountId: string) {
+    // Load the account data, no validation required since we are only loading the account with userId  
+    const account = await prisma.account.findFirst(({
+      where: {
+        id: accountId,
+        userId
+      }
+    }));
 
-  }
-
-  async getAccountData(accountId: string) {
-
+    return account;
   }
 
 }

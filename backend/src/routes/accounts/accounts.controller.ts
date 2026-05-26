@@ -20,7 +20,7 @@ export async function listAccounts(req: Request, res: Response) {
   res.json({ success: true, data: accounts });
 }
 
-export function getAccountData(req: Request, res: Response) {
+export async function getAccountData(req: Request, res: Response) {
   // Extract the userId 
   const userId = req.user?.id;
   // Extract the accountId 
@@ -33,8 +33,10 @@ export function getAccountData(req: Request, res: Response) {
     });
     return;
   }
-  accountService.validateAccountOwnership(userId, accountId);
-  res.json({ message: "Account data" });
+
+  // Load the account data
+  const accountData = await accountService.getAccountData(userId, accountId);
+  res.json({ success: true, data: accountData });
 }
 
 
