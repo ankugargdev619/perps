@@ -1,20 +1,23 @@
 import { Request, Response } from "express";
 import { accountService } from "./accounts.service.ts";
 
-export function listAccounts(req: Request, res: Response) {
+export async function listAccounts(req: Request, res: Response) {
   const userId = req.user?.id;
 
   // Check presence of the userId
   if (!userId) {
     res.status(401).json({
+      success: false,
       message: "User id is required"
     });
     return;
-  }
+  };
 
-  accountService.listAccountsforUser(userId);
+  console.log(`Loading account info for ${userId}`);
 
-  res.json({ message: "Listing accounts" });
+  const accounts = await accountService.listAccountsforUser(userId);
+
+  res.json({ success: true, data: accounts });
 }
 
 export function getAccountData(req: Request, res: Response) {
