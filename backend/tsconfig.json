@@ -1,7 +1,7 @@
 
 {
   // Visit https://aka.ms/tsconfig to read more about this file
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts","src/**/*.d.ts"],
   "exclude": ["node_modules", "dist", "prisma/**/*", "prisma.config.ts"],
   "compilerOptions": {
     // File Layout
@@ -17,6 +17,10 @@
     "moduleResolution": "NodeNext",
     "target": "es2020",
     "types": ["node", "jest"],
+    "typeRoots" : [
+      "@types",
+      "./node_modules/@types"
+    ],
     "lib": ["es2020"],
     // For nodejs:
     // "lib": ["esnext"],

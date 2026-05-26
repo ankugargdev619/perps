@@ -1,12 +1,12 @@
-import { Response } from "express";
-import { AuthRequest } from "../../types/auth.type.ts";
+import { Request, Response } from "express";
 
-export function listAccounts(req: AuthRequest, res: Response) {
-  const userId = req.user.id;
+export function listAccounts(req: Request, res: Response) {
+  const user = req.user?.id;
+
   res.json({ message: "Listing accounts" });
 }
 
-export function getAccountData(req: AuthRequest, res: Response) {
+export function getAccountData(req: Request, res: Response) {
   // Extract the accountId 
   const accountId = req.params.id
 
@@ -16,7 +16,7 @@ export function getAccountData(req: AuthRequest, res: Response) {
 }
 
 
-export function getAccountBalance(req: AuthRequest, res: Response) {
+export function getAccountBalance(req: Request, res: Response) {
   const accountId = req.params.id;
 
   // TODO: Get account balance
@@ -25,7 +25,7 @@ export function getAccountBalance(req: AuthRequest, res: Response) {
 }
 
 
-export function depositBalance(req: AuthRequest, res: Response) {
+export function depositBalance(req: Request, res: Response) {
   const accountId = req.params.id;
 
   // TODO: deposit the amount
@@ -33,7 +33,7 @@ export function depositBalance(req: AuthRequest, res: Response) {
   res.json({ message: "Deposit balance" })
 }
 
-export function withdrawBalance(req: AuthRequest, res: Response) {
+export function withdrawBalance(req: Request, res: Response) {
   const accountId = req.params.id;
 
   // TODO: withdraw balance
@@ -42,14 +42,14 @@ export function withdrawBalance(req: AuthRequest, res: Response) {
 }
 
 
-export function getAccountLedger(req: AuthRequest, res: Response) {
+export function getAccountLedger(req: Request, res: Response) {
   const accountId = req.params.id;
 
   // TODO: 
   res.json({ message: "Account ledger" })
 }
 
-export function getEquity(req: AuthRequest, res: Response) {
+export function getEquity(req: Request, res: Response) {
   const accountId = req.params.id;
 
   // TODO:

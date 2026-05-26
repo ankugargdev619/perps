@@ -1,5 +1,5 @@
 import { prisma } from "../../db/prisma.ts";
-import type { CurrentUsersData } from "./users.schema.ts";
+import type { CurrentUsersData, UpdateUserRequest } from "./users.schema.ts";
 
 export class UsersService {
   async getUserById(userId: string) {
@@ -14,13 +14,13 @@ export class UsersService {
     });
   }
 
-  async updateUserPreferences(userId: string, data: CurrentUsersData) {
+  async updateUserPreferences(userId: string, data: UpdateUserRequest) {
     const updateData: Partial<CurrentUsersData> = {};
     if (data.name !== undefined) {
-        updateData.name = data.name
+      updateData.name = data.name
     };
     if (data.email !== undefined) {
-        updateData.email = data.email
+      updateData.email = data.email
     };
 
     const user = await prisma.user.update({

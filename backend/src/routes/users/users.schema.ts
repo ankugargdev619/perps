@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 export const getUserResponseSchema = z.object({
-    id: z.string().cuid(),
-    name: z.string(),
-    email: z.string().email(),
-    createdAt: z.string().datetime(),
+  id: z.string().cuid(),
+  name: z.string(),
+  email: z.string().email(),
+  createdAt: z.string().datetime(),
 })
 
 export type CurrentUsersData = z.infer<typeof getUserResponseSchema>;

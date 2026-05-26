@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response, RequestHandler } from "express";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 import { env } from "../config/env.ts";
-import { AuthRequest } from "../types/auth.type.ts";
 
 type AuthUser =
   {
@@ -49,7 +48,7 @@ export const auth: RequestHandler = (req: Request, res: Response, next: NextFunc
     if (!user.id) return res.status(401).json({ message: "Invalid token payload" });
 
     // Attach user object to the request 
-    (req as AuthRequest).user = user;
+    req.user = user;
 
     next();
   } catch {

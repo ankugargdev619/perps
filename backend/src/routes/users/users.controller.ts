@@ -6,13 +6,8 @@ import {
   updateUserResponseSchema,
 } from "./users.schema.ts";
 
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-  };
-}
 
-export async function currentUsersData(req: AuthenticatedRequest, res: Response) {
+export async function currentUsersData(req: Request, res: Response) {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -27,7 +22,7 @@ export async function currentUsersData(req: AuthenticatedRequest, res: Response)
   return res.status(200).json(response);
 }
 
-export async function updateUserPreferences(req: AuthenticatedRequest, res: Response) {
+export async function updateUserPreferences(req: Request, res: Response) {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ message: "Unauthorized" });
