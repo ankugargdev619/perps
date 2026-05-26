@@ -6,9 +6,9 @@ export async function listAccounts(req: Request, res: Response) {
 
   // Check presence of the userId
   if (!userId) {
-    res.status(401).json({
+    res.status(400).json({
       success: false,
-      message: "User id is required"
+      error: "User id is required"
     });
     return;
   };
@@ -28,8 +28,9 @@ export async function getAccountData(req: Request, res: Response) {
 
   // Return if any value is missing 
   if (!userId || !accountId) {
-    res.status(401).json({
-      message: "User Id and Account Id is required"
+    res.status(400).json({
+      success: false,
+      error: "User Id and Account Id is required"
     });
     return;
   }
@@ -40,21 +41,54 @@ export async function getAccountData(req: Request, res: Response) {
 }
 
 
-export function getAccountBalance(req: Request, res: Response) {
-  const accountId = req.params.id;
+export async function getAccountBalance(req: Request, res: Response) {
+  // Extract the userId 
+  const userId = req.user?.id;
+  // Extract the accountId 
+  const accountId: string = req.params.id as string;
 
-  // TODO: Get account balance
+  // Return if any value is missing 
+  if (!userId || !accountId) {
+    res.status(400).json({
+      success: false,
+      error: "User Id or account id is missing"
+    });
+    return;
+  }
 
-  res.json({ message: "Account balance" });
+  const accountBalance = await accountService.getAccountBalance(userId, accountId);
+
+  res.json({ success: true, data: accountBalance });
 }
 
 
-export function depositBalance(req: Request, res: Response) {
-  const accountId = req.params.id;
+export async function depositBalance(req: Request, res: Response) {
+  // Extract the userId 
+  const userId = req.user?.id;
+  // Extract the accountId 
+  const accountId: string = req.params.id as string;
+  // Get the amount to be deposited
+  const { amount } = req.body;
 
-  // TODO: deposit the amount
+  // Return if any value is missing 
+  if (!userId || !accountId) {
+    res.status(400).json({
+      success: false,
+      error: "User Id and Account Id is required"
+    });
+    return;
+  }
 
-  res.json({ message: "Deposit balance" })
+  if (amount <= 0) {
+    res.status(400).json({
+      success: false,
+      error: "Invalid deposit amount"
+    })
+  }
+
+  const account = await accountService.depositBalance(userId, accountId, amount);
+
+  res.json({ success: true, data: account });
 }
 
 export function withdrawBalance(req: Request, res: Response) {
