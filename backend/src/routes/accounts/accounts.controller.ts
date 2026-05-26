@@ -1,17 +1,36 @@
 import { Request, Response } from "express";
+import { accountService } from "./accounts.service.ts";
 
 export function listAccounts(req: Request, res: Response) {
-  const user = req.user?.id;
+  const userId = req.user?.id;
+
+  // Check presence of the userId
+  if (!userId) {
+    res.status(401).json({
+      message: "User id is required"
+    });
+    return;
+  }
+
+  accountService.listAccountsforUser(userId);
 
   res.json({ message: "Listing accounts" });
 }
 
 export function getAccountData(req: Request, res: Response) {
+  // Extract the userId 
+  const userId = req.user?.id;
   // Extract the accountId 
-  const accountId = req.params.id
+  const accountId: string = req.params.id as string;
 
-  // TODO : Get the account data
-
+  // Return if any value is missing 
+  if (!userId || !accountId) {
+    res.status(401).json({
+      message: "User Id and Account Id is required"
+    });
+    return;
+  }
+  accountService.validateAccountOwnership(userId, accountId);
   res.json({ message: "Account data" });
 }
 

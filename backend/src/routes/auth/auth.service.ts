@@ -4,7 +4,9 @@ import { env } from "../../config/env.ts";
 import { prisma } from "../../db/prisma.ts";
 import { SignupInput } from "./auth.schema.ts";
 
-const JWT_SECRET = env.JWT_SECRET
+const JWT_SECRET = env.JWT_SECRET;
+const DEFAULT_ASSET = env.DEFAULT_ASSET;
+const TOKEN_VALIDITY = '7d';
 
 export class AuthService {
 
@@ -26,14 +28,36 @@ export class AuthService {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-      },
-    });
+
+    // Start the transaction
+    const user = await prisma.$transaction(async (tx) => {
+      // Create user
+      const userData = await tx.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+        },
+      });
+
+      // Initialize user account
+      await tx.account.upsert({
+        where: {
+          userId_collateralAsset: { userId: userData.id, collateralAsset: DEFAULT_ASSET },
+        },
+        create: {
+          userId: userData.id,
+          collateralAsset: DEFAULT_ASSET,
+          balance: 0,
+          lockedMargin: 0,
+        },
+        update: {}
+      })
+
+      return userData;
+    })
+
+
 
     // Generate JWT
     const token = jwt.sign(
@@ -43,7 +67,7 @@ export class AuthService {
       },
       JWT_SECRET,
       {
-        expiresIn: "7d",
+        expiresIn: TOKEN_VALIDITY,
       }
     );
 
