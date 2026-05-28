@@ -10,7 +10,8 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   HOST: z.string().default("0.0.0.0"),
   JWT_SECRET: z.string().default("Password"),
-  DEFAULT_ASSET: z.enum(["USDC"]).default("USDC")
+  DEFAULT_ASSET: z.enum(["USDC"]).default("USDC"),
+  FAUCET_ENABLED: z.boolean().default(false),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

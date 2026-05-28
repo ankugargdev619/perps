@@ -20,6 +20,7 @@ model User {
   name      String
   email     String   @unique
   password  String
+  role      UserRole @default(USER)
   accounts  Account[]
   createdAt DateTime @default(now())
 }
@@ -79,6 +80,11 @@ model WithdrawRequest {
   account             Account           @relation(fields: [accountId], references : [id], onDelete : Cascade)
 
   @@index([accountId, status])
+}
+
+enum UserRole {
+    USER
+    ADMIN
 }
 
 enum orderStatus {

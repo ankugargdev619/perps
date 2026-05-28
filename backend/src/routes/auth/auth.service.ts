@@ -25,12 +25,12 @@ export class AuthService {
       throw new Error("User already exists");
     }
 
-    
+
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    
+
 
     // Start the transaction
     const user = await prisma.$transaction(async (tx) => {
@@ -60,7 +60,7 @@ export class AuthService {
       return userData;
     })
 
-    
+
 
 
 
@@ -69,7 +69,8 @@ export class AuthService {
     const token = jwt.sign(
       {
         userId: user.id,
-        email: user.email
+        email: user.email,
+        role: user.role
       },
       JWT_SECRET,
       {
@@ -91,31 +92,32 @@ export class AuthService {
 
   // Login Function 
 
-    async login(data: LoginInput){
+  async login(data: LoginInput) {
 
-      const {email,password } = data;
+    const { email, password } = data;
 
-      const user = await prisma.user.findUnique({
-        where: {email},
-      });
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
 
-      if(!user){
-        throw new Error("Invalid email")
-      }
+    if (!user) {
+      throw new Error("Invalid email")
+    }
 
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
-      if(!isPasswordValid){
-          throw new Error("Invalid Password")
-      }
+    if (!isPasswordValid) {
+      throw new Error("Invalid Password")
+    }
 
 
-      // Login Function has its own Jwt creation {seperate from signup Function}
-      // Generate JWT
+    // Login Function has its own Jwt creation {seperate from signup Function}
+    // Generate JWT
     const token = jwt.sign(
       {
         userId: user.id,
-        email: user.email
+        email: user.email,
+        role: user.role
       },
       JWT_SECRET,
       {

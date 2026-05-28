@@ -12,12 +12,18 @@ export async function listAccounts(req: Request, res: Response) {
     });
     return;
   };
-
   console.log(`Loading account info for ${userId}`);
 
-  const accounts = await accountService.listAccountsforUser(userId);
-
-  res.json({ success: true, data: accounts });
+  try {
+    const accounts = await accountService.listAccountsforUser(userId);
+    res.json({ success: true, data: accounts });
+  } catch (err: any) {
+    console.error("Error listing user accounts", err.meessage);
+    res.status(401).json({
+      success: false,
+      error: "Error listing user data"
+    });
+  }
 }
 
 export async function getAccountData(req: Request, res: Response) {
@@ -35,9 +41,17 @@ export async function getAccountData(req: Request, res: Response) {
     return;
   }
 
-  // Load the account data
-  const accountData = await accountService.getAccountData(userId, accountId);
-  res.json({ success: true, data: accountData });
+  try {
+    // Load the account data
+    const accountData = await accountService.getAccountData(userId, accountId);
+    res.json({ success: true, data: accountData });
+  } catch (err: any) {
+    console.error("Error fetching account data", err);
+    res.status(401).json({
+      success: false,
+      error: "Error fetching account data"
+    })
+  }
 }
 
 
@@ -56,9 +70,16 @@ export async function getAccountBalance(req: Request, res: Response) {
     return;
   }
 
-  const accountBalance = await accountService.getAccountBalance(userId, accountId);
-
-  res.json({ success: true, data: accountBalance });
+  try {
+    const accountBalance = await accountService.getAccountBalance(userId, accountId);
+    res.json({ success: true, data: accountBalance });
+  } catch (err: any) {
+    console.error("Error fetching balance", err.message);
+    res.status(401).json({
+      success: false,
+      message: "Error fetching the balance",
+    });
+  }
 }
 
 
@@ -86,9 +107,15 @@ export async function depositBalance(req: Request, res: Response) {
     })
   }
 
-  const account = await accountService.depositBalance(userId, accountId, amount);
-
-  res.json({ success: true, data: account });
+  try {
+    const account = await accountService.depositBalance(userId, accountId, amount, req.requestId!);
+    res.json({ success: true, data: account });
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      error: err.message
+    })
+  }
 }
 
 export function withdrawBalance(req: Request, res: Response) {

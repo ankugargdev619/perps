@@ -6,6 +6,7 @@ type AuthUser =
   {
     id: string;
     email: string;
+    role: string;
   }
 
 const JWT_SECRET = env.JWT_SECRET;
@@ -42,6 +43,7 @@ export const auth: RequestHandler = (req: Request, res: Response, next: NextFunc
     const user: AuthUser = {
       id: String(decoded.sub ?? decoded.userId ?? decoded.id),
       email: typeof decoded.email === "string" ? decoded.email : '',
+      role: typeof decoded.role === "string" ? decoded.role : ''
     };
 
     // User id does not exist
