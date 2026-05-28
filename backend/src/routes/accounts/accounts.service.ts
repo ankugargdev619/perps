@@ -1,4 +1,3 @@
-import { env } from "../../config/env.ts";
 import { prisma } from "../../db/prisma.ts";
 import { LedgerType, Prisma, UserRole, WithdrawalStatus } from "../../generated/prisma/client.ts";
 import { HttpError } from "../../utils/http-error.ts";
@@ -10,6 +9,10 @@ export class AccountsService {
     const accounts = await prisma.account.findMany({
       where: {
         userId
+      },
+      omit: {
+        createdaAt: true,
+        updatedAt: true
       }
     });
     return accounts;
@@ -41,6 +44,10 @@ export class AccountsService {
           balance: {
             increment: amount
           }
+        },
+        omit: {
+          createdaAt: true,
+          updatedAt: true
         }
       });
 
@@ -64,22 +71,45 @@ export class AccountsService {
   async submitWithdrawalRequest(userId: string, accountId: string, amount: Prisma.Decimal) {
 
     // Check if sufficient balance is present in the account
-    const account = getOwnedAccount(userId, accountId);
-    if ((await account).balance < amount) {
-      console.error(`Account ${accountId} does not have enough balance`);
-      throw new HttpError(400, `Account ${accountId} does not have enough balance`);
-    };
+    await getOwnedAccount(userId, accountId);
 
-    // Create a withdrawal request with pending state
-    const request = await prisma.withdrawRequest.create({
-      data: {
-        accountId,
-        amount,
-        status: WithdrawalStatus.PENDING,
-      }
+    const withdrawalReq = await prisma.$transaction(async (tx) => {
+
+      // Check available balance for use
+      const rows = await tx.$queryRaw<{ available: string }[]>(
+        Prisma.sql`SELECT public.get_usable_balance(${accountId}) AS available`
+      );
+      const available = Prisma.Decimal(rows[0]?.available ?? "0");
+
+      if (available.lt(amount)) throw new HttpError(401, `Insufficient balance in the account, current balance : ${available}`)
+      // Create a withdrawal request with pending state
+      const request = await tx.withdrawRequest.create({
+        data: {
+          accountId,
+          amount,
+          status: WithdrawalStatus.PENDING,
+        },
+        omit: {
+          createdAt: true,
+          updatedAt: true
+        }
+      });
+
+      // Reserve the withdrawal amount
+      await tx.account.update({
+        where: {
+          id: accountId
+        },
+        data: {
+          withdrawalReserve: {
+            increment: amount
+          }
+        }
+      });
+      return request;
     });
 
-
+    return withdrawalReq;
   }
 
 }

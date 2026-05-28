@@ -15,16 +15,11 @@ export async function listAccounts(req: Request, res: Response) {
     });
     return;
   };
-  console.log(`Loading account info for ${userId}`);
 
-  try {
-    const accounts = await accountService.listAccountsforUser(userId);
-    res.json({ success: true, data: accounts });
-  } catch (err: any) {
-    console.error("Error listing user accounts", err.meessage);
-    throw new HttpError(500, "Error listing accounts");
-  }
+  const accounts = await accountService.listAccountsforUser(userId);
+  res.json({ success: true, data: accounts });
 }
+
 
 export async function getAccountData(req: Request, res: Response) {
   // Extract the userId 
@@ -41,14 +36,9 @@ export async function getAccountData(req: Request, res: Response) {
     return;
   }
 
-  try {
-    // Load the account data
-    const accountData = await accountService.getAccountData(userId, accountId);
-    res.json({ success: true, data: accountData });
-  } catch (err: any) {
-    console.error("Error fetching account data", err);
-    throw new HttpError(500, "Error fetching account data");
-  }
+  // Load the account data
+  const accountData = await accountService.getAccountData(userId, accountId);
+  res.json({ success: true, data: accountData });
 }
 
 
@@ -64,13 +54,8 @@ export async function getAccountBalance(req: Request, res: Response) {
     throw new HttpError(400, "Account Id missing");
   }
 
-  try {
-    const accountBalance = await accountService.getAccountBalance(userId, accountId);
-    res.json({ success: true, data: accountBalance });
-  } catch (err: any) {
-    console.error("Error fetching balance", err.message);
-    throw new HttpError(500, "Error fetching the balance");
-  }
+  const accountBalance = await accountService.getAccountBalance(userId, accountId);
+  res.json({ success: true, data: accountBalance });
 }
 
 
@@ -97,21 +82,24 @@ export async function depositBalance(req: Request, res: Response) {
 
   if (amount <= 0) throw new HttpError(401, "Inavlid amount");
 
-  try {
-    const account = await accountService.depositBalance(accountId, amount, req.requestId!);
-    res.json({ success: true, data: account });
-  } catch (err: any) {
-    console.error("Error depositing the balance", err);
-    throw new HttpError(500, "Error depositing the balance");
-  }
+  const account = await accountService.depositBalance(accountId, amount, req.requestId!);
+  res.json({ success: true, data: account });
 }
 
-export function withdrawBalance(req: Request, res: Response) {
+export async function withdrawBalance(req: Request, res: Response) {
+  const { amount } = req.validated?.body;
+  const userId = req.user?.id;
   const accountId = req.validated?.params.id;
 
-  // TODO: withdraw balance
+  if (!userId || !accountId) {
+    throw new HttpError(400, "User Id and Account Id is required");
+  }
 
-  res.json({ message: "Withdraw balance" });
+  const withdrawReq = await accountService.submitWithdrawalRequest(userId!, accountId, amount);
+  res.status(201).json({
+    success: true,
+    data: withdrawReq
+  });
 }
 
 

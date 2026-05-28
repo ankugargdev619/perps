@@ -7,11 +7,12 @@ import { ErrorRequestHandler } from "express";
  * - prevents exposure of the int
  *   ernal code errors to the user side  
  */
-export const errorMiddleware: ErrorRequestHandler = (err, req, res, _next) => {
+export const errorMiddleware: ErrorRequestHandler = (err, req, res, next) => {
+
+  // No need to process if the headers are already sent
+  if (res.headersSent) return next(err);
   // Check for status and statusCode and extract the value, else fallback to 500
   const status = typeof err?.status === "number" ? err.status : typeof err?.statusCode === "number" ? err.statusCode : 500;
-  console.log(err.status);
-
   // Extract the requestId
   const requestId = req.requestId ?? req.header("x-request-id");
   if (requestId) res.setHeader("x-request-id", requestId);
@@ -19,11 +20,12 @@ export const errorMiddleware: ErrorRequestHandler = (err, req, res, _next) => {
 
   if (status >= 500) {
     console.error(`Method : ${req.method}; Request Id : ${requestId}; Original URL : ${req.originalUrl}; Error : ${err}`);
+    console.error(err);
   }
 
   res.status(status).json({
     success: false,
-    message,
+    error: message,
     requestId
   })
 }

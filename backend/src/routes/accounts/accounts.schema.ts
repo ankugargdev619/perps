@@ -13,3 +13,12 @@ export const accountDepositSchema = z.object({
     ),
 });
 
+export const accountWithdrawSchema = z.object({
+  amount: z
+    .string()
+    .regex(
+      /^\d{1,18}(\.\d{1,18})?$/,
+      "Invalid decimal format only upto 18 digits before and after decimal are allowed"
+    ),
+});
+
