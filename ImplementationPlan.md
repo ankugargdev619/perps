@@ -186,9 +186,15 @@ model User {
   name         String
   email        String   @unique
   passwordHash String
+  role         UserRole @default(USER)
   createdAt    DateTime @default(now())
   accounts     Account[]
   apiKeys      ApiKey[]
+}
+
+enum UserRole {
+  USER
+  ADMIN
 }
 
 model ApiKey {

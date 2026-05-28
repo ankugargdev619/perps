@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { accountService } from "./accounts.service.ts";
+import { UserRole } from "../../generated/prisma/enums.ts";
+import { env } from "../../config/env.ts";
 
 export async function listAccounts(req: Request, res: Response) {
   const userId = req.user?.id;
@@ -30,7 +32,7 @@ export async function getAccountData(req: Request, res: Response) {
   // Extract the userId 
   const userId = req.user?.id;
   // Extract the accountId 
-  const accountId: string = req.params.id as string;
+  const accountId: string = req.validated?.params.id as string;
 
   // Return if any value is missing 
   if (!userId || !accountId) {
@@ -59,7 +61,7 @@ export async function getAccountBalance(req: Request, res: Response) {
   // Extract the userId 
   const userId = req.user?.id;
   // Extract the accountId 
-  const accountId: string = req.params.id as string;
+  const accountId: string = req.validated?.params.id as string;
 
   // Return if any value is missing 
   if (!userId || !accountId) {
@@ -87,9 +89,17 @@ export async function depositBalance(req: Request, res: Response) {
   // Extract the userId 
   const userId = req.user?.id;
   // Extract the accountId 
-  const accountId: string = req.params.id as string;
+  const accountId: string = req.validated?.params.id as string;
   // Get the amount to be deposited
   const { amount } = req.body;
+
+
+  // Check if faucet is ENABLED 
+  const FAUCET_ENABLED = env.FAUCET_ENABLED;
+  if (!FAUCET_ENABLED) throw new Error('Deposit not allowed');
+
+  // Check if the role is admin 
+  if (req.user?.role != UserRole.ADMIN) throw new Error("Only admin allowed to deposit balance");
 
   // Return if any value is missing 
   if (!userId || !accountId) {
@@ -108,7 +118,7 @@ export async function depositBalance(req: Request, res: Response) {
   }
 
   try {
-    const account = await accountService.depositBalance(userId, accountId, amount, req.requestId!);
+    const account = await accountService.depositBalance(accountId, amount, req.requestId!);
     res.json({ success: true, data: account });
   } catch (err: any) {
     res.status(400).json({
@@ -119,7 +129,7 @@ export async function depositBalance(req: Request, res: Response) {
 }
 
 export function withdrawBalance(req: Request, res: Response) {
-  const accountId = req.params.id;
+  const accountId = req.validated?.params.id;
 
   // TODO: withdraw balance
 
@@ -128,14 +138,14 @@ export function withdrawBalance(req: Request, res: Response) {
 
 
 export function getAccountLedger(req: Request, res: Response) {
-  const accountId = req.params.id;
+  const accountId = req.validated?.params.id;
 
   // TODO: 
   res.json({ message: "Account ledger" })
 }
 
 export function getEquity(req: Request, res: Response) {
-  const accountId = req.params.id;
+  const accountId = req.validated?.params.id;
 
   // TODO:
   res.json({ message: "Equity balance" });

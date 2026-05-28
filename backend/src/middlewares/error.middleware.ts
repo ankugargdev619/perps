@@ -12,8 +12,9 @@ export const errorMiddleware: ErrorRequestHandler = (err, req, res, _next) => {
   const status = typeof err?.status === "number" ? err.status : typeof err?.statusCode === "number" ? err.statusCode : 500;
 
 
-  // Extract the requestId 
-  const requestId = req.header("x-request-id");
+  // Extract the requestId
+  const requestId = req.requestId ?? req.header("x-request-id");
+  if (requestId) res.setHeader("x-request-id", requestId);
   const message = status >= 500 ? "Internal Server Error" : (err as any)?.message ?? "Error";
 
   if (status >= 500) {
@@ -21,7 +22,7 @@ export const errorMiddleware: ErrorRequestHandler = (err, req, res, _next) => {
   }
 
   res.status(status).json({
-    ok: false,
+    success: false,
     message,
     requestId
   })

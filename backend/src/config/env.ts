@@ -11,7 +11,7 @@ const EnvSchema = z.object({
   HOST: z.string().default("0.0.0.0"),
   JWT_SECRET: z.string().default("Password"),
   DEFAULT_ASSET: z.enum(["USDC"]).default("USDC"),
-  FAUCET_ENABLED: z.boolean().default(false),
+  FAUCET_ENABLED: z.coerce.boolean().default(false),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

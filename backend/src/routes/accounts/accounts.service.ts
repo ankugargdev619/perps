@@ -1,6 +1,6 @@
 import { env } from "../../config/env.ts";
 import { prisma } from "../../db/prisma.ts";
-import { LedgerType, Prisma, WithdrawalStatus } from "../../generated/prisma/client.ts";
+import { LedgerType, Prisma, UserRole, WithdrawalStatus } from "../../generated/prisma/client.ts";
 import { getOwnedAccount } from "./accounts.helper.ts";
 
 
@@ -26,12 +26,7 @@ export class AccountsService {
     return { ...account, available: (account.balance.minus(account.lockedMargin)) as Prisma.Decimal };
   }
 
-  async depositBalance(userId: string, accountId: string, amount: Prisma.Decimal, refId: string) {
-    const FAUCET_ENABLED = env.FAUCET_ENABLED;
-
-    if (!FAUCET_ENABLED) throw new Error('Deposit not allowed');
-    // check ownership
-    await getOwnedAccount(userId, accountId);
+  async depositBalance(accountId: string, amount: Prisma.Decimal, refId: string) {
 
     // Start a transaction
     const account = await prisma.$transaction(async (tx) => {
@@ -40,7 +35,6 @@ export class AccountsService {
       const accountData = await tx.account.update({
         where: {
           id: accountId,
-          userId
         },
         data: {
           balance: {

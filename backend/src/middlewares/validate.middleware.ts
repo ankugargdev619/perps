@@ -12,9 +12,9 @@ type Schemas = { body?: ZodType; query?: ZodType; params?: ZodType };
 export function validate(s: Schemas): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     const validated: {
-      body?: unknown;
-      query?: unknown;
-      params?: unknown
+      body?: any;
+      query?: any;
+      params?: any
     } = {};
 
     // Check the validity of path parameters
@@ -36,7 +36,7 @@ export function validate(s: Schemas): RequestHandler {
     if (query) validated.query = query.data;
     if (body) validated.body = body.data;
 
-    (req as Request & { validated: typeof validated }).validated = validated;
+    req.validated = validated;
     next();
   }
 }
