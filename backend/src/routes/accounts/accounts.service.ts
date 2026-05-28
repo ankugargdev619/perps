@@ -1,6 +1,7 @@
 import { env } from "../../config/env.ts";
 import { prisma } from "../../db/prisma.ts";
 import { LedgerType, Prisma, UserRole, WithdrawalStatus } from "../../generated/prisma/client.ts";
+import { HttpError } from "../../utils/http-error.ts";
 import { getOwnedAccount } from "./accounts.helper.ts";
 
 
@@ -66,7 +67,7 @@ export class AccountsService {
     const account = getOwnedAccount(userId, accountId);
     if ((await account).balance < amount) {
       console.error(`Account ${accountId} does not have enough balance`);
-      throw Error(`Account ${accountId} does not have enough balance`);
+      throw new HttpError(400, `Account ${accountId} does not have enough balance`);
     };
 
     // Create a withdrawal request with pending state

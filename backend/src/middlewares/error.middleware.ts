@@ -10,7 +10,7 @@ import { ErrorRequestHandler } from "express";
 export const errorMiddleware: ErrorRequestHandler = (err, req, res, _next) => {
   // Check for status and statusCode and extract the value, else fallback to 500
   const status = typeof err?.status === "number" ? err.status : typeof err?.statusCode === "number" ? err.statusCode : 500;
-
+  console.log(err.status);
 
   // Extract the requestId
   const requestId = req.requestId ?? req.header("x-request-id");

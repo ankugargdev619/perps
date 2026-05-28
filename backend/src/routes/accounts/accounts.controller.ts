@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { accountService } from "./accounts.service.ts";
 import { UserRole } from "../../generated/prisma/enums.ts";
 import { env } from "../../config/env.ts";
+import { HttpError } from "../../utils/http-error.ts";
 
 export async function listAccounts(req: Request, res: Response) {
   const userId = req.user?.id;
@@ -21,10 +22,7 @@ export async function listAccounts(req: Request, res: Response) {
     res.json({ success: true, data: accounts });
   } catch (err: any) {
     console.error("Error listing user accounts", err.meessage);
-    res.status(401).json({
-      success: false,
-      error: "Error listing user data"
-    });
+    throw new HttpError(500, "Error listing accounts");
   }
 }
 
@@ -49,10 +47,7 @@ export async function getAccountData(req: Request, res: Response) {
     res.json({ success: true, data: accountData });
   } catch (err: any) {
     console.error("Error fetching account data", err);
-    res.status(401).json({
-      success: false,
-      error: "Error fetching account data"
-    })
+    throw new HttpError(500, "Error fetching account data");
   }
 }
 
@@ -65,11 +60,8 @@ export async function getAccountBalance(req: Request, res: Response) {
 
   // Return if any value is missing 
   if (!userId || !accountId) {
-    res.status(400).json({
-      success: false,
-      error: "User Id or account id is missing"
-    });
-    return;
+    console.error("Account id and user id is required");
+    throw new HttpError(400, "Account Id missing");
   }
 
   try {
@@ -77,10 +69,7 @@ export async function getAccountBalance(req: Request, res: Response) {
     res.json({ success: true, data: accountBalance });
   } catch (err: any) {
     console.error("Error fetching balance", err.message);
-    res.status(401).json({
-      success: false,
-      message: "Error fetching the balance",
-    });
+    throw new HttpError(500, "Error fetching the balance");
   }
 }
 
@@ -96,35 +85,24 @@ export async function depositBalance(req: Request, res: Response) {
 
   // Check if faucet is ENABLED 
   const FAUCET_ENABLED = env.FAUCET_ENABLED;
-  if (!FAUCET_ENABLED) throw new Error('Deposit not allowed');
+  if (!FAUCET_ENABLED) throw new HttpError(403, 'Deposit not allowed');
 
   // Check if the role is admin 
-  if (req.user?.role != UserRole.ADMIN) throw new Error("Only admin allowed to deposit balance");
+  if (req.user?.role != UserRole.ADMIN) throw new HttpError(403, "Only admin allowed to deposit balance");
 
   // Return if any value is missing 
   if (!userId || !accountId) {
-    res.status(400).json({
-      success: false,
-      error: "User Id and Account Id is required"
-    });
-    return;
+    throw new HttpError(400, "User id and account is is required");
   }
 
-  if (amount <= 0) {
-    res.status(400).json({
-      success: false,
-      error: "Invalid deposit amount"
-    })
-  }
+  if (amount <= 0) throw new HttpError(401, "Inavlid amount");
 
   try {
     const account = await accountService.depositBalance(accountId, amount, req.requestId!);
     res.json({ success: true, data: account });
   } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      error: err.message
-    })
+    console.error("Error depositing the balance", err);
+    throw new HttpError(500, "Error depositing the balance");
   }
 }
 
