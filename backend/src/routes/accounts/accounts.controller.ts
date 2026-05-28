@@ -4,6 +4,10 @@ import { UserRole } from "../../generated/prisma/enums.ts";
 import { env } from "../../config/env.ts";
 import { HttpError } from "../../utils/http-error.ts";
 
+/**
+ * Controller for 
+ * GET : /api/accounts 
+ * */
 export async function listAccounts(req: Request, res: Response) {
   const userId = req.user?.id;
 
@@ -16,11 +20,18 @@ export async function listAccounts(req: Request, res: Response) {
     return;
   };
 
-  const accounts = await accountService.listAccountsforUser(userId);
-  res.json({ success: true, data: accounts });
+  try {
+    const accounts = await accountService.listAccountsforUser(userId);
+    res.json({ success: true, data: accounts });
+  } catch (err: any) {
+    throw err;
+  }
 }
 
-
+/**
+ * Controller for
+ * GET : /api/accounts/:accountId/
+ * */
 export async function getAccountData(req: Request, res: Response) {
   // Extract the userId 
   const userId = req.user?.id;
@@ -36,12 +47,19 @@ export async function getAccountData(req: Request, res: Response) {
     return;
   }
 
-  // Load the account data
-  const accountData = await accountService.getAccountData(userId, accountId);
-  res.json({ success: true, data: accountData });
+  try {
+    // Load the account data
+    const accountData = await accountService.getAccountData(userId, accountId);
+    res.json({ success: true, data: accountData });
+  } catch (err: any) {
+    throw err;
+  }
 }
 
-
+/**
+ * Controller for
+ * GET : /api/accounts/:accountId/balance
+ * */
 export async function getAccountBalance(req: Request, res: Response) {
   // Extract the userId 
   const userId = req.user?.id;
@@ -54,19 +72,27 @@ export async function getAccountBalance(req: Request, res: Response) {
     throw new HttpError(400, "Account Id missing");
   }
 
-  const accountBalance = await accountService.getAccountBalance(userId, accountId);
-  res.json({ success: true, data: accountBalance });
+  try {
+    const accountBalance = await accountService.getAccountBalance(userId, accountId);
+    res.json({ success: true, data: accountBalance });
+  } catch (err: any) {
+    throw err;
+  }
 }
 
 
+/**
+ * Controller for
+ * POST : /api/accounts/:accountId/deposit
+ * */
 export async function depositBalance(req: Request, res: Response) {
+
   // Extract the userId 
   const userId = req.user?.id;
   // Extract the accountId 
   const accountId: string = req.validated?.params.id as string;
   // Get the amount to be deposited
   const { amount } = req.body;
-
 
   // Check if faucet is ENABLED 
   const FAUCET_ENABLED = env.FAUCET_ENABLED;
@@ -82,10 +108,18 @@ export async function depositBalance(req: Request, res: Response) {
 
   if (amount <= 0) throw new HttpError(401, "Inavlid amount");
 
-  const account = await accountService.depositBalance(accountId, amount, req.requestId!);
-  res.json({ success: true, data: account });
+  try {
+    const account = await accountService.depositBalance(accountId, amount, req.requestId!);
+    res.json({ success: true, data: account });
+  } catch (err: any) {
+    throw err;
+  }
 }
 
+/**
+ * Controller for
+ * POST : /api/accounts/:accountId/withdraw
+ * */
 export async function withdrawBalance(req: Request, res: Response) {
   const { amount } = req.validated?.body;
   const userId = req.user?.id;
@@ -95,19 +129,35 @@ export async function withdrawBalance(req: Request, res: Response) {
     throw new HttpError(400, "User Id and Account Id is required");
   }
 
-  const withdrawReq = await accountService.submitWithdrawalRequest(userId!, accountId, amount);
-  res.status(201).json({
-    success: true,
-    data: withdrawReq
-  });
+  try {
+    const withdrawReq = await accountService.submitWithdrawalRequest(userId!, accountId, amount);
+    res.status(201).json({
+      success: true,
+      data: withdrawReq
+    });
+  } catch (err: any) {
+    throw err;
+  }
 }
 
-
-export function getAccountLedger(req: Request, res: Response) {
+/**
+ * Controller for
+ * GET : /api/accounts/:accountId/ledger
+ * */
+export async function getAccountLedger(req: Request, res: Response) {
   const accountId = req.validated?.params.id;
+  const limit = req.validated?.query?.limit;
+  const cursor = req.validated?.query?.cursor;
+  const userId = req.user?.id;
 
-  // TODO: 
-  res.json({ message: "Account ledger" })
+  if (!userId || !accountId) throw new HttpError(401, "User id and Account id is required");
+  try {
+    const ledgerData = await accountService.getLedgerData(userId, accountId, cursor, limit);
+    res.json({ success: true, ...ledgerData });
+  } catch (err: any) {
+    throw err;
+  }
+
 }
 
 export function getEquity(req: Request, res: Response) {
