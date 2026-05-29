@@ -1,9 +1,14 @@
 import { prisma } from "../../db/prisma.ts";
 import { LedgerType, Prisma, WithdrawalStatus } from "../../generated/prisma/client.ts";
 import { HttpError } from "../../utils/http-error.ts";
-import { decodeCursor, encodeCursor, getOwnedAccount } from "./accounts.helper.ts";
+import { getOwnedAccount } from "./accounts.helper.ts";
 
 const DEFAULT_LIMIT = 50;
+type LedgerPagination = {
+  limit?: number;
+  before?: number;
+  after?: number;
+}
 
 export class AccountsService {
   async listAccountsforUser(userId: string) {
@@ -130,54 +135,76 @@ export class AccountsService {
     }
   }
 
-  async getLedgerData(userId: string, accountId: string, cursor?: string, limit?: number) {
+  async getLedgerData(userId: string, accountId: string, pagination: LedgerPagination) {
 
-    const expectedLimit = limit || DEFAULT_LIMIT;
+    const limit = pagination?.limit || DEFAULT_LIMIT;
 
     try {
       // Check ownership of the account
       await getOwnedAccount(userId, accountId);
 
-      // Decode the cursor
-      const ledgerCursor = cursor ? decodeCursor(cursor) : undefined;
+      const isBefore = pagination?.before !== undefined;
+      const cursorMs = pagination?.after ?? pagination?.before;
+      const cursorDate = cursorMs !== undefined ? new Date(cursorMs) : undefined;
 
-      const where = ledgerCursor?.createdAt ? {
+      if (cursorDate && Number.isNaN(cursorDate.getTime())) {
+        throw new HttpError(400, "Invalid cursor");
+      }
+
+      const where = {
         accountId,
-        createdAt: {
-          lt: ledgerCursor?.createdAt
-        }
-      } :
-        { accountId }
+        ...(cursorDate && !isBefore && { createdAt: { lt: cursorDate } }),
+        ...(cursorDate && isBefore && { createdAt: { gt: cursorDate } }),
+      };
 
       // List all the rows
       const rows = await prisma.ledgerEntry.findMany({
         where,
         orderBy: {
-          createdAt: "desc"
+          createdAt: isBefore ? "asc" : "desc"
         },
-        take: expectedLimit + 1
+        take: limit + 1
       });
 
-      const hasMore = rows.length > expectedLimit;
-      const data = hasMore ? rows.slice(0, expectedLimit) : rows;
+      // Indicates if more entries are present in the direction we are looking
+      const hasMoreInDirection = rows.length > limit;
+      // Slice the eextra entry that we are checking
+      const sliced = hasMoreInDirection ? rows.slice(0, limit) : rows;
+      // Reverse the entries if we are propagating in reverse
+      const data = isBefore ? sliced.reverse() : sliced;
+
+      // Return no data if there are no entries present
+      if (data.length === 0) {
+        return {
+          data: [],
+          page: {
+            limit: Math.min(limit, data.length),
+            hasNext: false,
+            hasPrevious: false,
+            nextCursor: null,
+            prevCursor: null
+          },
+        };
+      }
+
+      const first = data[0];
       const last = data[data.length - 1];
 
-      if (data.length < 1) throw new HttpError(400, 'No transactions found on the ledger');
+      const hasNext = isBefore ? true : hasMoreInDirection;
+      const hasPrevious = isBefore ? hasMoreInDirection : pagination.after !== undefined;
 
-      const nextCursor = {
-        createdAt: last?.createdAt.toISOString(),
-        id: last?.id
-      };
+      return {
+        data,
+        page: {
+          limit: data.length,
+          hasNext,
+          hasPrevious,
+          nextCursor: hasNext ? last.createdAt.getTime() : null,
+          prevCursor: hasPrevious ? first.createdAt.getTime() : null,
+        }
+      }
 
-      const encodedCursor = encodeCursor(nextCursor);
 
-      const page = {
-        limit: Math.min(expectedLimit, data.length),
-        nextCursor: encodedCursor,
-        hasMore: hasMore
-      };
-
-      return { data, page };
     } catch (err: any) {
       console.error(err);
       throw err;

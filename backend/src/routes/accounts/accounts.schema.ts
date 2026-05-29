@@ -1,3 +1,4 @@
+import { before } from "node:test";
 import { z } from "zod";
 
 export const accountParamSchema = z.object({
@@ -22,7 +23,13 @@ export const accountWithdrawSchema = z.object({
     ),
 });
 
-export const ledgerQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).optional().default(50),
-  cursor: z.string().min(1).optional(),
-});
+export const ledgerQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(100).optional().default(50),
+    after: z.coerce.number().int().positive().optional(),
+    before: z.coerce.number().int().positive().optional(),
+  })
+  .refine((q) => !(q.after && q.before), {
+    message: "Provide either after or before, not both"
+  })
+  ;

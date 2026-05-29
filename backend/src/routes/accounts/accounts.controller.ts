@@ -146,13 +146,12 @@ export async function withdrawBalance(req: Request, res: Response) {
  * */
 export async function getAccountLedger(req: Request, res: Response) {
   const accountId = req.validated?.params.id;
-  const limit = req.validated?.query?.limit;
-  const cursor = req.validated?.query?.cursor;
+  const pagination = req.validated?.query;
   const userId = req.user?.id;
 
   if (!userId || !accountId) throw new HttpError(401, "User id and Account id is required");
   try {
-    const ledgerData = await accountService.getLedgerData(userId, accountId, cursor, limit);
+    const ledgerData = await accountService.getLedgerData(userId, accountId, pagination);
     res.json({ success: true, ...ledgerData });
   } catch (err: any) {
     throw err;
