@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { accountService } from "./accounts.service.ts";
 import { UserRole } from "../../generated/prisma/enums.ts";
 import { env } from "../../config/env.ts";
-import { HttpError } from "../../utils/http-error.ts";
+import { accountErrors } from "./accounts.errors.ts";
 
 /**
  * Controller for 
@@ -69,7 +69,7 @@ export async function getAccountBalance(req: Request, res: Response) {
   // Return if any value is missing 
   if (!userId || !accountId) {
     console.error("Account id and user id is required");
-    throw new HttpError(400, "Account Id missing");
+    throw accountErrors.missingParams();
   }
 
   try {
@@ -96,17 +96,17 @@ export async function depositBalance(req: Request, res: Response) {
 
   // Check if faucet is ENABLED 
   const FAUCET_ENABLED = env.FAUCET_ENABLED;
-  if (!FAUCET_ENABLED) throw new HttpError(403, 'Deposit not allowed');
+  if (!FAUCET_ENABLED) throw accountErrors.depositDisabled();
 
   // Check if the role is admin 
-  if (req.user?.role != UserRole.ADMIN) throw new HttpError(403, "Only admin allowed to deposit balance");
+  if (req.user?.role != UserRole.ADMIN) throw accountErrors.forbiddenNotAdmin();
 
   // Return if any value is missing 
   if (!userId || !accountId) {
-    throw new HttpError(400, "User id and account is is required");
+    throw accountErrors.missingParams();
   }
 
-  if (amount <= 0) throw new HttpError(401, "Inavlid amount");
+  if (amount <= 0) throw accountErrors.invalidAmount();
 
   try {
     const account = await accountService.depositBalance(accountId, amount, req.requestId!);
@@ -126,7 +126,7 @@ export async function withdrawBalance(req: Request, res: Response) {
   const accountId = req.validated?.params.id;
 
   if (!userId || !accountId) {
-    throw new HttpError(400, "User Id and Account Id is required");
+    throw accountErrors.missingParams();
   }
 
   try {
@@ -149,7 +149,7 @@ export async function getAccountLedger(req: Request, res: Response) {
   const pagination = req.validated?.query;
   const userId = req.user?.id;
 
-  if (!userId || !accountId) throw new HttpError(401, "User id and Account id is required");
+  if (!userId || !accountId) throw accountErrors.missingParams();
   try {
     const ledgerData = await accountService.getLedgerData(userId, accountId, pagination);
     res.json({ success: true, ...ledgerData });

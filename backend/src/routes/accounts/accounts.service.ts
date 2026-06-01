@@ -1,6 +1,6 @@
 import { prisma } from "../../db/prisma.ts";
 import { LedgerType, Prisma, WithdrawalStatus } from "../../generated/prisma/client.ts";
-import { HttpError } from "../../utils/http-error.ts";
+import { accountErrors } from "./accounts.errors.ts";
 import { getOwnedAccount } from "./accounts.helper.ts";
 
 const DEFAULT_LIMIT = 50;
@@ -98,8 +98,7 @@ export class AccountsService {
     const account = await getOwnedAccount(userId, accountId);
 
     // Throw an error if the balance is not available
-    if (account.available.lt(amount)) throw new HttpError(401, `Insufficient balance in the account, current balance : ${account.available}`)
-
+    if (account.available.lt(amount)) throw accountErrors.insufficientBalance(account.available);
     try {
       const withdrawalReq = await prisma.$transaction(async (tx) => {
         // Create a withdrawal request with pending state
@@ -148,7 +147,7 @@ export class AccountsService {
       const cursorDate = cursorMs !== undefined ? new Date(cursorMs) : undefined;
 
       if (cursorDate && Number.isNaN(cursorDate.getTime())) {
-        throw new HttpError(400, "Invalid cursor");
+        throw accountErrors.invalidCursor();
       }
 
       const where = {
