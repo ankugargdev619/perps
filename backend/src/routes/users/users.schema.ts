@@ -4,7 +4,7 @@ export const getUserResponseSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
   email: z.string().email(),
-  createdAt: z.string().datetime(),
+  createdAt: z.date(),
 })
 
 export type CurrentUsersData = z.infer<typeof getUserResponseSchema>;
@@ -17,11 +17,6 @@ export const updateUserRequestSchema = z.object({
 export type UpdateUserRequest = z.infer<typeof updateUserRequestSchema>;
 
 // Schema for PATCH /users/me response
-export const updateUserResponseSchema = z.object({
-  id: z.string().cuid(),
-  name: z.string(),
-  email: z.string().email(),
-  updatedAt: z.date(),
-});
+export const updateUserResponseSchema = getUserResponseSchema;
 
 export type UpdateUserResponse = z.infer<typeof updateUserResponseSchema>;

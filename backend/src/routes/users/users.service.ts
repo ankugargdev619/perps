@@ -23,6 +23,10 @@ export class UsersService {
       updateData.email = data.email
     };
 
+    if (Object.keys(updateData).length === 0) {
+      throw new Error("No fields provided to update");
+    }
+
     const user = await prisma.user.update({
       where: { id: userId },
       data: updateData,

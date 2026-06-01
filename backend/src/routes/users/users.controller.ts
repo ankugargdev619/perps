@@ -29,6 +29,10 @@ export async function updateUserPreferences(req: Request, res: Response) {
   }
 
   const payload = updateUserRequestSchema.parse(req.body);
+  if (Object.keys(payload).length === 0) {
+    return res.status(400).json({ message: "At least one field must be provided" });
+  }
+
   const updatedUser = await usersService.updateUserPreferences(userId, payload);
 
   const response = updateUserResponseSchema.parse(updatedUser);

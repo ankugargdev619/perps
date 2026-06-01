@@ -37,23 +37,25 @@ export const auth: RequestHandler = (req: Request, res: Response, next: NextFunc
   try {
     // Decode the JWT token and verify 
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload | string;
-    if (typeof decoded === "string") return res.status(401).json({ meessage: "Invalid token" });
+    if (typeof decoded === "string") return res.status(401).json({ message: "Invalid token" });
+
+    const userId = decoded.sub ?? decoded.userId ?? decoded.id;
+    if (typeof userId !== "string" || userId.length === 0) {
+      return res.status(401).json({ message: "Invalid token payload" });
+    }
 
     // Create user object 
     const user: AuthUser = {
-      id: String(decoded.sub ?? decoded.userId ?? decoded.id),
+      id: userId,
       email: typeof decoded.email === "string" ? decoded.email : '',
       role: typeof decoded.role === "string" ? decoded.role : ''
     };
-
-    // User id does not exist
-    if (!user.id) return res.status(401).json({ message: "Invalid token payload" });
 
     // Attach user object to the request 
     req.user = user;
 
     next();
   } catch {
-    return res.status(401).json({ message: "inavlid or expired tokeen" });
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
 }
