@@ -1,9 +1,11 @@
+import { env } from "../../config/env.ts";
 import { prisma } from "../../db/prisma.ts";
 import { LedgerType, Prisma, WithdrawalStatus } from "../../generated/prisma/client.ts";
 import { accountErrors } from "./accounts.errors.ts";
 import { getOwnedAccount } from "./accounts.helper.ts";
 
-const DEFAULT_LIMIT = 50;
+const DEFAULT_LIMIT = env.DEFAULT_LIMIT;
+
 type LedgerPagination = {
   limit?: number;
   before?: number;
