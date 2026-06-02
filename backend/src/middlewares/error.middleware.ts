@@ -55,6 +55,7 @@ export const errorMiddleware: ErrorRequestHandler = (err, req, res, next) => {
   }
 
   res.status(status).json({
+    success: false,
     error: { code, message, requestId },
   });
 };

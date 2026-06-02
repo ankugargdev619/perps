@@ -1,5 +1,4 @@
 import z from "zod";
-
 const SYMBOL_REGEX = /^[A-Z0-9]+-PERP$/;
 const CANDLE_RESOLUTIONS = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
 
@@ -37,3 +36,32 @@ export const candlesQuerySchema = z
   .refine((q) => !(q.start != null && q.end != null && q.start > q.end),
     { message: "start ,ust be <=  end" }
   );
+
+
+export const MARKETS_CACHE_TTL_SECONDS = 5;
+
+
+export type PublicMarket = {
+  symbol: string;
+  baseAsset: string;
+  quoteAsset: string;
+  tickSize: string;
+  lotSize: string;
+  maxLeverage: number;
+  initialMargin: string;
+  maintenanceMargin: string;
+  fundingInterval: number;
+  isActive: boolean;
+};
+
+export type PublicMarketTicker = {
+  symbol: string;
+  last: string;
+  priceChange24h: string;
+  priceChangePct24h: string;
+  high24h: string;
+  low24h: string;
+  volume24h: string;
+  trades24h: number;
+  ts: number;
+};

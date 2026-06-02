@@ -1,5 +1,7 @@
 
 export const marketKeys = {
+  all: () => `markets:all`,
+  market: (symbol: string) => `markets:${symbol}`,
   ticker: (symbol: string) => `ticker:${symbol}`,
   bookBids: (symbol: string) => `book:${symbol}:bids`,
   bookAsks: (symbol: string) => `book:${symbol}:asks`,
