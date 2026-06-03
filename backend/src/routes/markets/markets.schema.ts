@@ -65,3 +65,15 @@ export type PublicMarketTicker = {
   trades24h: number;
   ts: number;
 };
+
+type BidAndAsk = [
+  price: string,
+  size: string
+]
+
+export type OrderBook = {
+  symbol: string;
+  bids: BidAndAsk[];
+  asks: BidAndAsk[];
+  ts: number;
+}

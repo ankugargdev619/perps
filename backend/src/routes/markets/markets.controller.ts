@@ -44,10 +44,11 @@ export async function getMarketTicker(req: Request, res: Response) {
  * GET : /markets/:symbol/orderbook 
  * */
 export async function getMarketOrderBook(req: Request, res: Response) {
-  await marketsService.getMarketOrdereBook();
+  const { symbol, depth } = req.validated?.params;
+  const orderBook = await marketsService.getMarketOrderBook(symbol, depth);
   res.json({
     success: true,
-    data: {}
+    data: orderBook
   })
 }
 
