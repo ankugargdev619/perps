@@ -16,3 +16,19 @@ export const loginschema = z.object({
 })
 
 export type LoginInput = z.infer<typeof loginschema>;
+
+// Schema for Refresh Token
+
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
+export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
+
+// Schema for Logout 
+
+export const LogoutSchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
+export type LogoutInput = z.infer<typeof LogoutSchema>;

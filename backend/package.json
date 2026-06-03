@@ -14,7 +14,7 @@
     "prisma studio": "npx prisma studio",
     "seed:markets:db": "npx prisma db seed",
     "seed:markets:redis": "tsx scripts/seed-market-redis.ts",
-    "seed:markets" : "npm run seed:markets:db && npm run seed:markets:redis",
+    "seed:markets": "npm run seed:markets:db && npm run seed:markets:redis",
     "test": "NODE_ENV=testing node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "NODEE_ENV=testing node --experimental-vm-modules node_modules/jest/bin/jest.js --watchAll"
   },

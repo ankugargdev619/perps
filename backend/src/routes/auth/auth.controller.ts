@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
 
-import { signupSchema, loginschema } from "./auth.schema.ts";
+import { signupSchema, loginschema, refreshTokenSchema, LogoutSchema } from "./auth.schema.ts";
 import { authService } from "./auth.service.ts";
 import { success } from "zod";
+import { request } from "node:http";
 
 
 export const signupController = async (
@@ -53,6 +54,61 @@ export const loginController = async(
       message: error.message,
     });
   }
+}
+
+// Controller method for RefreshToken
+
+ export const refreshTokenController = async(
+    req: Request,
+    res: Response
+  ) =>{
+try{
+
+  const validatedData = refreshTokenSchema.parse(req.body);
+  const result = await authService.refreshToken(validatedData);
+
+  return res.status(200).json({
+    success: true,
+    message: "Token Refreshed Successfully",
+    data: result
+  });
+  
+}catch(error: any){
+return res.status(401).json({
+  success: false,
+  message: error.message,
+});
+}
+}
+
+// Controller Method for Logout
+
+export const LogoutCOntroller = async (
+  req: Request,
+  res: Response
+) =>{
+
+  try{
+
+    const validatedData = LogoutSchema.parse(req.body);
+
+    const result = await authService.logout(validatedData);
+
+    return res.status(200).json({
+      success: true,
+      message: "User logged out successfully",
+      data: result,
+
+    });
+
+  }catch(error: any){
+    return res.status(401).json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+
 }
 
 

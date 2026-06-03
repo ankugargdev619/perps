@@ -1,12 +1,27 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt, { Jwt, JwtPayload } from "jsonwebtoken";
 import { env } from "../../config/env.ts";
 import { prisma } from "../../db/prisma.ts";
-import { SignupInput, LoginInput } from "./auth.schema.ts";
+import crypto from "crypto";
+import { SignupInput, LoginInput, RefreshTokenInput, LogoutInput  } from "./auth.schema.ts";
+import { hex } from "zod";
+
 
 const JWT_SECRET = env.JWT_SECRET;
 const DEFAULT_ASSET = env.DEFAULT_ASSET;
-const TOKEN_VALIDITY = '7d';
+const ACCESS_TOKEN_VALIDITY = '15m';
+const REFRESH_TOKEN_VALIDITY = '7d';
+const ONE_HOUR_IN_MS = 60 * 60 * 1000;
+
+function hashToken(token: string){
+return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function getRefreshTokenExpiry(){
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+  return expiresAt;
+}
 
 export class AuthService {
 
@@ -74,7 +89,7 @@ export class AuthService {
       },
       JWT_SECRET,
       {
-        expiresIn: TOKEN_VALIDITY,
+        expiresIn: REFRESH_TOKEN_VALIDITY,
       }
     );
 
@@ -113,22 +128,22 @@ export class AuthService {
 
     // Login Function has its own Jwt creation {seperate from signup Function}
     // Generate JWT
-    const token = jwt.sign(
+    const accesstoken = this.createAccessToken(
       {
-        userId: user.id,
+        id: user.id,
         email: user.email,
         role: user.role
       },
-      JWT_SECRET,
-      {
-        expiresIn: TOKEN_VALIDITY,
-      }
+      
     );
 
+    const refrehToken = await this.createRefreshToken(user.id);
+
     return {
-      token,
+      accesstoken,
+      refrehToken,
       user: {
-        id: user.id,
+        
         name: user.name,
         email: user.email,
       },
@@ -137,6 +152,144 @@ export class AuthService {
 
   // After creation of this signup Function you must create a Controller function which will hande user's request
 
+//Helper Methods created for Refresh Tokens
+
+private createAccessToken(user : {id: string, email: string, role: string}){
+
+  return jwt.sign({
+    userId : user.id,
+    email : user.email,
+    role : user.role
+  },
+  JWT_SECRET,
+  {
+    expiresIn : ACCESS_TOKEN_VALIDITY,
+  }
+);
 }
+
+private async createRefreshToken(userId: string) {
+  const refreshToken = crypto.randomBytes(64).toString("hex");
+
+  await prisma.refreshToken.create({
+    data: {
+      tokenHash: hashToken(refreshToken),
+      userId,
+      expiresAt: getRefreshTokenExpiry(),
+    },
+  });
+
+  return refreshToken;
+}
+  
+
+// Refresh Token Service Method
+
+async refreshToken(data: RefreshTokenInput) {
+  const { refreshToken } = data;
+
+  const tokenHash = hashToken(refreshToken);
+
+  const storedToken = await prisma.refreshToken.findUnique({
+    where: {
+      tokenHash,
+    },
+    include: {
+      user: true,
+    },
+  });
+
+  if (!storedToken) {
+    throw new Error("Invalid refresh token");
+  }
+
+  if (storedToken.revokedAt) {
+    throw new Error("Refresh token has been revoked");
+  }
+
+  if (storedToken.expiresAt < new Date()) {
+    throw new Error("Refresh token has expired");
+  }
+
+  const accessToken = this.createAccessToken({
+    id: storedToken.user.id,
+    email: storedToken.user.email,
+    role: storedToken.user.role,
+  });
+
+  const timeLeft = storedToken.expiresAt.getTime() - Date.now();
+
+  if (timeLeft < ONE_HOUR_IN_MS) {
+    await prisma.refreshToken.update({
+      where: {
+        id: storedToken.id,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+
+    const newRefreshToken = await this.createRefreshToken(storedToken.user.id);
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
+    };
+  }
+
+  return {
+    accessToken,
+    refreshToken,
+  };
+}
+
+
+// Logout Service Method
+
+// It fetches the refresh Token and based on that it either logs user out or let user in.
+
+async logout(data: LogoutInput) {
+  
+  const {refreshToken} = data;
+
+  const tokenHash = hashToken(refreshToken);
+
+  const storedToken = await prisma.refreshToken.findUnique({
+    where: {
+      tokenHash,
+
+    },
+  });
+
+  if (!storedToken) {
+    throw new Error("Invalid refresh token");
+  }
+
+  if (storedToken.revokedAt) {
+    return {
+      loggedOut: true,
+    };
+  }
+
+  await prisma.refreshToken.update({
+    where:{
+      id: storedToken.id,
+    },
+    data:{
+      revokedAt: new Date(),
+    },
+  });
+
+  return{
+    loggedOut: true,
+  }
+
+}
+
+}
+
+
+
+
 
 export const authService = new AuthService();
