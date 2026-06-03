@@ -12,133 +12,145 @@ datasource db {
   provider = "postgresql"
 }
 
-
 // user Model 
 
 // Refresh Token field is added in order to have them in User table.
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      UserRole @default(USER)
-  accounts  Account[]
+  id           String         @id @default(cuid())
+  name         String
+  email        String         @unique
+  password     String
+  role         UserRole       @default(USER)
+  accounts     Account[]
   refershToken RefreshToken[]
+  apiKeys      ApiKey[]
+  createdAt    DateTime       @default(now())
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  keyHash   String   @unique
+  label     String
+  scopes    String[]
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Order {
-  id             String    @id @default(cuid()) 
-  accountId      String
-  marketId       String
-  clientOrderId  String?
-  side           side
-  type           OrderType
-  price          Decimal?
-  size           Decimal
-  filledSize     Decimal    @default(0)
-  status         OrderStatus
-  reduceOnly     Boolean    @default(false)
-  postOnly       Boolean    @default(false)
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt()
-  account        Account    @relation(fields: [accountId], references : [id])
-  market         Market     @relation(fields : [marketId], references : [id])
+  id            String      @id @default(cuid())
+  accountId     String
+  marketId      String
+  clientOrderId String?
+  side          side
+  type          OrderType
+  price         Decimal?
+  size          Decimal
+  filledSize    Decimal     @default(0)
+  status        OrderStatus
+  reduceOnly    Boolean     @default(false)
+  postOnly      Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt()
+  account       Account     @relation(fields: [accountId], references: [id])
+  market        Market      @relation(fields: [marketId], references: [id])
 }
 
 model Account {
-  id                  String    @id @default(cuid())
-  userId              String
-  collateralAsset     String    @default("USDC")
-  balance             Decimal   @default(0) @db.Decimal(36,18)
-  lockedMargin        Decimal   @default(0) @db.Decimal(36,18)
-  withdrawalReserve   Decimal   @default(0) @db.Decimal(36,18)
-  createdaAt          DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  user                User      @relation(fields: [userId], references: [id], onDelete : Cascade)
-  ledgerEntries       LedgerEntry[]
-  withdrawalRequests  WithdrawRequest[]
-  orders              Order[]
-  positions           Position[]
+  id                 String            @id @default(cuid())
+  userId             String
+  collateralAsset    String            @default("USDC")
+  balance            Decimal           @default(0) @db.Decimal(36, 18)
+  lockedMargin       Decimal           @default(0) @db.Decimal(36, 18)
+  withdrawalReserve  Decimal           @default(0) @db.Decimal(36, 18)
+  createdaAt         DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ledgerEntries      LedgerEntry[]
+  withdrawalRequests WithdrawRequest[]
+  orders             Order[]
+  positions          Position[]
 
   @@unique([userId, collateralAsset])
   @@index([userId])
 }
 
 model LedgerEntry {
-  id                  String     @id @default(cuid())
-  accountId           String
-  type                LedgerType
-  amount              Decimal    @db.Decimal(36,18)
-  balanceAfter        Decimal    @db.Decimal(36,18)
-  refId               String?
-  createdAt           DateTime  @default(now())
-  account             Account   @relation(fields : [accountId], references : [id], onDelete : Cascade)
+  id           String     @id @default(cuid())
+  accountId    String
+  type         LedgerType
+  amount       Decimal    @db.Decimal(36, 18)
+  balanceAfter Decimal    @db.Decimal(36, 18)
+  refId        String?
+  createdAt    DateTime   @default(now())
+  account      Account    @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@index([accountId, createdAt])
 }
 
 model WithdrawRequest {
-  id                  String            @id @default(cuid())
-  accountId           String
-  amount              Decimal           @db.Decimal(36,18)
-  status              WithdrawalStatus  @default(PENDING)
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-  account             Account           @relation(fields: [accountId], references : [id], onDelete : Cascade)
+  id        String           @id @default(cuid())
+  accountId String
+  amount    Decimal          @db.Decimal(36, 18)
+  status    WithdrawalStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  account   Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@index([accountId, status])
 }
 
 model Market {
-  id                  String            @id
-  baseAsset           String
-  quoteAsset          String
-  tickSize            Decimal
-  lotSize             Decimal
-  maxLeverage         Int
-  maintenanceMargin   Decimal
-  initialMargin       Decimal
-  isActive            Boolean   @default(true)
-  fundingInterval     Int
-  orders              Order[]
-  positions           Position[]
+  id                String     @id
+  baseAsset         String
+  quoteAsset        String
+  tickSize          Decimal
+  lotSize           Decimal
+  maxLeverage       Int
+  maintenanceMargin Decimal
+  initialMargin     Decimal
+  isActive          Boolean    @default(true)
+  fundingInterval   Int
+  orders            Order[]
+  positions         Position[]
 }
 
 model Position {
-  id                  String            @id @default(cuid())
-  accountId           String
-  marketId            String
-  side                PositionSide
-  size                Decimal
-  entryPrice          Decimal
-  leverage            Int
-  marginMode          MarginMode
-  unrealizedPnl       Decimal           @default(0)
-  liquidationPx       Decimal?
-  updatedAt           DateTime          @updatedAt
-  account             Account           @relation(fields : [accountId], references : [id])
-  market              Market            @relation(fields : [marketId], references : [id])
+  id            String       @id @default(cuid())
+  accountId     String
+  marketId      String
+  side          PositionSide
+  size          Decimal
+  entryPrice    Decimal
+  leverage      Int
+  marginMode    MarginMode
+  unrealizedPnl Decimal      @default(0)
+  liquidationPx Decimal?
+  updatedAt     DateTime     @updatedAt
+  account       Account      @relation(fields: [accountId], references: [id])
+  market        Market       @relation(fields: [marketId], references: [id])
 }
 
 // model created for refresh Token 
 
-model RefreshToken{
-  id                    String                       @id @default(cuid())
-  tokenHash             String                       @unique
-  userId                String 
-  expiresAt             DateTime
-  revokedAt             DateTime?
-  createdAt             DateTime                     @default(now())
-  updatedAt             DateTime                     @updatedAt
+model RefreshToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum UserRole {
-    USER
-    ADMIN
+  USER
+  ADMIN
 }
 
 enum OrderStatus {
@@ -180,7 +192,7 @@ enum WithdrawalStatus {
 
 enum PositionSide {
   LONG
-  SHORT 
+  SHORT
 }
 
 enum MarginMode {

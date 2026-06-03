@@ -12,6 +12,7 @@ const EnvSchema = z.object({
   JWT_SECRET: z.string().default("Password"),
   DEFAULT_ASSET: z.enum(["USDC"]).default("USDC"),
   FAUCET_ENABLED: z.coerce.boolean().default(false),
+  DEFAULT_LIMIT: z.coerce.number().positive().max(100).default(50)
 });
 
 const parsed = EnvSchema.safeParse(process.env);

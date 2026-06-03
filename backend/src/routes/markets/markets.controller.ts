@@ -6,12 +6,10 @@ import { marketsService } from "./markets.service.ts";
  * GET : /markets
  * */
 export async function listMarkets(req: Request, res: Response) {
-
-  await marketsService.listMarkets();
-
+  const markets = await marketsService.listMarkets();
   res.json({
     success: true,
-    data: {}
+    data: markets
   });
 }
 
@@ -20,12 +18,12 @@ export async function listMarkets(req: Request, res: Response) {
  * GET : /markets/:symbol
  * */
 export async function getMarketData(req: Request, res: Response) {
-
-  await marketsService.getMarketData();
+  const { symbol } = req.validated?.params;
+  const marketData = await marketsService.getMarketData(symbol);
   res.json({
     success: true,
-    data: {}
-  })
+    data: marketData
+  });
 }
 
 /**
@@ -33,8 +31,8 @@ export async function getMarketData(req: Request, res: Response) {
  * GET : /markets/:symbol/ticker
  * */
 export async function getMarketTicker(req: Request, res: Response) {
-
-  await marketsService.getMarketTicker();
+  const { symbol } = req.validated?.params;
+  await marketsService.getMarketTicker(symbol);
   res.json({
     success: true,
     data: {}
@@ -46,11 +44,11 @@ export async function getMarketTicker(req: Request, res: Response) {
  * GET : /markets/:symbol/orderbook 
  * */
 export async function getMarketOrderBook(req: Request, res: Response) {
-
-  await marketsService.getMarketOrdereBook();
+  const { symbol, depth } = req.validated?.params;
+  const orderBook = await marketsService.getMarketOrderBook(symbol, depth);
   res.json({
     success: true,
-    data: {}
+    data: orderBook
   })
 }
 

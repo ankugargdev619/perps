@@ -1,16 +1,16 @@
 import { Router } from "express";
 import { validate } from "../../middlewares/validate.middleware.ts";
-import { marketSymbolParamSchema } from "./markets.schema.ts";
-import { getMarkeetTrades, getMarketCandles, getMarketData, getMarketFunding, getMarketMarkPrice, getMarketOrderBook, listMarkets } from "./markets.controller.ts";
+import { marketSymbolParamSchema, orderBookQuerySchema } from "./markets.schema.ts";
+import { getMarketData, getMarketTicker, listMarkets, getMarketOrderBook } from "./markets.controller.ts";
 
 
 export const marketsRouter = Router();
 
-marketsRouter.get('/', () => { });
-marketsRouter.get('/:symbol', validate({ params: marketSymbolParamSchema }), listMarkets);
-// marketsRouter.get('/:symbol/ticker', getMarketData);
-// marketsRouter.get('/:symbol/orderbook', validate({ params: symbolParamSchema }), getMarketOrderBook);
-// marketsRouter.get('/:symbol/trades', validate({ params: symbolParamSchema }), getMarkeetTrades);
-// marketsRouter.get('/:symbol/candles', validate({ params: symbolParamSchema }), getMarketCandles);
-// marketsRouter.get('/:symbol/funding', validate({ params: symbolParamSchema }), getMarketFunding);
-// marketsRouter.get('/:symbol/mark-price', validate({ params: symbolParamSchema }), getMarketMarkPrice);
+marketsRouter.get('/', listMarkets);
+marketsRouter.get('/:symbol', validate({ params: marketSymbolParamSchema }), getMarketData);
+marketsRouter.get('/:symbol/ticker', validate({ params: marketSymbolParamSchema }), getMarketTicker);
+marketsRouter.get('/:symbol/orderbook', validate({ params: marketSymbolParamSchema, query: orderBookQuerySchema }), getMarketOrderBook);
+// marketsrouter.get('/:symbol/trades', validate({ params: symbolparamschema }), getmarkeettrades);
+// marketsrouter.get('/:symbol/candles', validate({ params: symbolparamschema }), getmarketcandles);
+// marketsrouter.get('/:symbol/funding', validate({ params: symbolparamschema }), getmarketfunding);
+// marketsrouter.get('/:symbol/mark-price', validate({ params: symbolparamschema }), getmarketmarkprice);

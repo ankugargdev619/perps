@@ -202,20 +202,29 @@ model ApiKey {
   userId    String
   keyHash   String   @unique
   label     String
-  scopes    String[] // read, trade
+  scopes    String[] // read, w
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 }
 
 model Account {
-  id              String   @id @default(cuid())
-  userId          String
-  collateralAsset String   // USDC
-  balance         Decimal  @db.Decimal(36, 18)
-  lockedMargin    Decimal  @db.Decimal(36, 18)
-  user            User     @relation(fields: [userId], references: [id])
-  positions       Position[]
-  orders          Order[]
+  id                  String    @id @default(cuid())
+  userId              String
+  collateralAsset     String    @default("USDC")
+  balance             Decimal   @default(0) @db.Decimal(36,18)
+  lockedMargin        Decimal   @default(0) @db.Decimal(36,18)
+  withdrawalReserve   Decimal   @default(0) @db.Decimal(36,18)
+  createdaAt          DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  user                User      @relation(fields: [userId], references: [id], onDelete : Cascade)
+  ledgerEntries       LedgerEntry[]
+  withdrawalRequests  WithdrawRequest[]
+  orders              Order[]
+  positions           Position[]
+
+
+  @@unique([userId, collateralAsset])
+  @@index([userId])
 }
 
 model Market {
@@ -300,13 +309,16 @@ model FundingPayment {
 }
 
 model LedgerEntry {
-  id           String   @id @default(cuid())
-  accountId    String
-  type         String   // DEPOSIT, WITHDRAW, FEE, FUNDING, REALIZED_PNL
-  amount       Decimal
-  balanceAfter Decimal
-  refId        String?
-  createdAt    DateTime @default(now())
+  id                  String     @id @default(cuid())
+  accountId           String
+  type                LedgerType
+  amount              Decimal    @db.Decimal(36,18)
+  balanceAfter        Decimal    @db.Decimal(36,18)
+  refId               String?
+  createdAt           DateTime  @default(now())
+  account             Account   @relation(fields : [accountId], references : [id], onDelete : Cascade)
+
+  @@index([accountId, createdAt])
 }
 
 model PriceSnapshot {
